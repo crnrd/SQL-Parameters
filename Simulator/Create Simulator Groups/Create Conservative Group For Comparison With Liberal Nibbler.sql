@@ -5,9 +5,9 @@ WITH p AS
   SELECT id,
          created_at,
          handling_at
-  FROM payments_live
+  FROM payments
   WHERE id IN (SELECT DISTINCT payment_id
-               FROM decisions_live
+               FROM decisions
                WHERE (variables #>> '{Analytic, risk_mode}') = 'liberal'
                AND   created_at >NOW() - INTERVAL '5 days') -- put here the time frame when liberal nibbler ran
                and status not in (0, 12, 19, 20)
@@ -26,12 +26,12 @@ FROM (SELECT DISTINCT p.id payment_id,
       FROM p
         LEFT JOIN (SELECT DISTINCT payment_id,
                           MIN(TO_TIMESTAMP(variables #>> '{Analytic, executed_at}','YYYY-MM-DD HH24:MI:SS.US')) executed_at
-                   FROM decisions_live
+                   FROM decisions
                    WHERE application_name IN ('Bender_Auto_Decide','Bender')
                    GROUP BY 1) d ON d.payment_id = p.id
         LEFT JOIN (SELECT DISTINCT payment_id,
                           MIN(updated_at +INTERVAL '1 minute') AS proc_updated_at
-                   FROM proc_requests_live
+                   FROM proc_requests
                    WHERE status = 'success'
                    AND   tx_type = 'authorization'
                    GROUP BY 1) pr ON p.id = pr.payment_id) a;
