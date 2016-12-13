@@ -1,0 +1,40 @@
+-- CONSERVATIVE GROUP FOR COMPARISON WITH LIBERAL CHAMPION - UPDATES FROM LIVE TABLES!
+
+WITH p AS
+(
+  SELECT id,
+         created_at,
+         handling_at
+  FROM payments_live
+  WHERE id IN (SELECT DISTINCT payment_id
+               FROM decisions_live
+               WHERE (variables #>> '{Analytic, risk_mode}') = 'liberal'
+               AND   created_at >NOW() - INTERVAL '5 days') -- put here the time frame when liberal nibbler ran
+               and status not in (0, 12, 19, 20)
+) INSERT INTO simulator_parameters
+(
+  group_id,
+  payment_id,
+  time_point,
+  risk_mode
+)
+SELECT (SELECT COALESCE(MAX(group_id) +1,1) FROM simulator_parameters),payment_id,
+       pit,
+       'conservative'
+FROM (SELECT DISTINCT p.id payment_id,
+             least(p.handling_at, COALESCE(d.executed_at,pr.proc_updated_at,p.created_at +INTERVAL '5 minutes')) AS pit
+      FROM p
+        LEFT JOIN (SELECT DISTINCT payment_id,
+                          MIN(TO_TIMESTAMP(variables #>> '{Analytic, executed_at}','YYYY-MM-DD HH24:MI:SS.US')) executed_at
+                   FROM decisions_live
+                   WHERE application_name IN ('Bender_Auto_Decide','Bender')
+                   GROUP BY 1) d ON d.payment_id = p.id
+        LEFT JOIN (SELECT DISTINCT payment_id,
+                          MIN(updated_at +INTERVAL '1 minute') AS proc_updated_at
+                   FROM proc_requests_live
+                   WHERE status = 'success'
+                   AND   tx_type = 'authorization'
+                   GROUP BY 1) pr ON p.id = pr.payment_id) a;
+
+
+     commit;
