@@ -4,18 +4,20 @@ WbVarDef var1 ='$[?var1]';
 WbVarDef payment1 ='$[?payment1]';
 
 --@Wbresult difference in decisions (count)
-select real_dec, sim_dec, real_reason, sim_reason, count(*) from (
+select first_dec, second_dec, first_reason, second_reason, count(*) from (
 SELECT first_sim.payment_id,
-      second_sim.decision AS real_dec,
-      first_sim.decision sim_dec,
-      second_sim.reason real_reason,
-      first_sim.reason sim_reason
+      first_sim.decision as first_dec,
+      second_sim.decision AS second_dec,
+      first_sim.reason as first_reason,
+      second_sim.reason as second_reason
+      
+
 FROM (select sr.*, sp.payment_id, sp.time_point from simulator_results sr 
 left join simulator_parameters sp on sr.parameter_id = sp.id where run_id  IN ($[first_sim])) first_sim
 left join (select sr.*, sp.payment_id from simulator_results sr 
 left join simulator_parameters sp  on sr.parameter_id = sp.id where run_id  IN ($[second_sim])) second_sim on 
 first_sim.payment_id = second_sim.payment_id)a
-where real_reason != sim_reason
+where first_reason != second_reason
 group by 1, 2, 3, 4
 ;
 
@@ -161,8 +163,4 @@ first_sim.payment_id = second_sim.payment_id)a
 where payment_id in ($[payment1])
 ;
 
-select * from selfie_kyc_exif order by 1 desc limit 50;
-select distinct (exif_data ->> 'Image Model') from selfie_kyc_exif;
-select * from ghiro order by 1 desc limit 50;
-select * from ghiro  where (gexiv #>> '{Exif, GPS is not null order by 1 desc limit 50;
-select distinct (gexiv #>> '{Exif, DateTimeOriginal}') from ghiro order by 1 desc limit 50;
+

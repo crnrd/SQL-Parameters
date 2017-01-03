@@ -316,7 +316,11 @@ where pr.masked_credit_card in ($[ccs])
 group by 1 )a
 order by element_type, email) b) b
 join payments p
+<<<<<<< HEAD
 on p.validation_request_body->>'email' = a.email
+=======
+on p.validation_request_body->>'email' = c.email
+>>>>>>> test_query
 ;
 -----------------------------------------------------------------------------------------------                          
 
