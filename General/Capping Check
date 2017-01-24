@@ -1,0 +1,4 @@
+select distinct decision, count (distinct payment_id), sum(total_amount)  from decisions left join
+(select id, total_amount from payments) p on p.id = decisions.payment_id where application_name = 'Bender_Auto_Decide' and created_at > now() - interval '3 days'
+and payment_id in (select id from payments where partner_end_user_id in (select id from partner_end_users where partner_id in (select id from partners where service_type in ('exchange', 'wallet'))))
+group by 1
