@@ -85,21 +85,27 @@ order by 1, 2, 3;
 SELECT Challenger.payment_id,
              Challenger.key,
              Champion_value as first_sim_value,
-             Challenger_value as second_sim_value
-      FROM (SELECT payment_id,
+             Challenger_value as second_sim_value,
+             Challenger.variables #>> '{Analytic, name_on_card_match}' as name_on_card_match,
+             Challenger.variables #>> '{Analytic, name_on_card_match_1}' as name_on_card_match_1,
+              (Challenger.variables #>> '{Analytic, first_name}') || ' ' || (Challenger.variables #>> '{Analytic, last_name}')  as full_name,
+              (Challenger.variables #>> '{Analytic, first_name_card}') || ' ' || (Challenger.variables #>> '{Analytic, last_name_card}')  as full_name_card,
+             Champion.variables as first_sim_vars,
+             Challenger.variables as second_sim_vars
+      FROM (SELECT payment_id, variables, 
                    KEY,
                    value AS Challenger_value
-            FROM (SELECT payment_id,
+            FROM (SELECT payment_id, variables,
                          (jsonb_each_text(variables#> '{Analytic}')). *
                   FROM(
                   
                   select sr.*, sp.payment_id, sp.time_point from simulator_results sr 
                   left join simulator_parameters sp on sr.parameter_id = sp.id where run_id  IN ($[second_sim])
             ) d)s) Challenger
-        inner JOIN (SELECT payment_id,
+        inner JOIN (SELECT payment_id, variables,
                           KEY,
                           value AS Champion_Value
-                   FROM (SELECT payment_id,
+                   FROM (SELECT payment_id, variables, 
                          (jsonb_each_text(variables#> '{Analytic}')). *
                   FROM(
                   select sr.*, sp.payment_id, sp.time_point from simulator_results sr 
@@ -113,12 +119,13 @@ or champion_value is null
 or 
 (lower (challenger_value) !=lower (champion_value)
 and Challenger.key not in ('num_non_us_ca', 'variable_for_random_approve_all_num_non_us_ca_0_65_threshold', 'card_verification_degree', 'pseudo_randomized_seu_id', 'random_value_for_control_group',
-'variable_for_random_approve', 'variable_for_random_approve_num_all_high_threshold'))
+'variable_for_random_approve', 'variable_for_random_approve_num_all_high_threshold')) 
+;
 ;
 
 
 --@Wbresult specific variable
-SELECT payment_id, key, Challenger_value as first_sim, Champion_value as second_sim
+SELECT payment_id, key,  Champion_value as first_sim, Challenger_value as second_sim
 FROM (
 SELECT Challenger.payment_id,
              Challenger.key,
@@ -167,6 +174,8 @@ join (select sr.*, sp.payment_id from simulator_results sr
 join simulator_parameters sp  on sr.parameter_id = sp.id where run_id  IN ($[second_sim])) second_sim on 
 first_sim.payment_id = second_sim.payment_id)a
 where payment_id in ($[payment1])
+;
+select distinct status_code, count(*) from simulator_results where 
 ;
 
 

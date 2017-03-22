@@ -17,12 +17,12 @@ SELECT base_sim.run_id as base_rid,
        compared_sim.decision sim_dec,
        base_sim.reason base_reason,
        compared_sim.reason sim_reason,
-       base_sim.variables#>> '{Analytic, $[base_var]}' AS base_var,
-       compared_sim.variables#>> '{Analytic,$[sim_var]}' AS sim_var,
---        (compared_sim.variables#>> '{Analytic, first_name}') as first_name,
---        (compared_sim.variables#>> '{Analytic, last_name}') as last_name,
---        (compared_sim.variables#>> '{Analytic, first_name_card}') as first_name_card,
---        (compared_sim.variables#>> '{Analytic, last_name_card}') as last_name_card,
+       compared_sim.variables#>> '{Analytic, $[base_var]}' AS name_on_card_match_1,
+       compared_sim.variables#>> '{Analytic,$[sim_var]}' AS name_on_card_match_cl,
+       (compared_sim.variables#>> '{Analytic, first_name}') as first_name,
+       (compared_sim.variables#>> '{Analytic, last_name}') as last_name,
+       (compared_sim.variables#>> '{Analytic, first_name_card}') as first_name_card,
+       (compared_sim.variables#>> '{Analytic, last_name_card}') as last_name_card,
        p.status,
        base_sim.variables as base_full_var,
        compared_sim.variables as sim_full_var,
@@ -41,27 +41,19 @@ where run_id = ($[sim_rid])) compared_sim
 left join payments p on p.id = base_sim.payment_id
 ) a
 where 
- base_reason != sim_reason
-and not ((base_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
+-- name_on_card_match_1 != name_on_card_match_cl
+ not ((base_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
 (sim_reason = 'Checkpoint rules did not produce any decision')) and
 not ((base_reason = 'random_approve_num_all_under_limit_low_threshold good approve score') and 
 (sim_reason = 'Checkpoint rules did not produce any decision')) and 
 not ((sim_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
 (base_reason = 'Checkpoint rules did not produce any decision')) and 
 not ((sim_reason = 'random_approve_num_all_under_limit_low_threshold good approve score') and 
-(base_reason = 'Checkpoint rules did not produce any decision'))
- and 
-not ((sim_reason = 'manual_emailage_alert') and 
-(base_reason = 'emailage alert 1'))
-and 
-not ((sim_reason = 'decline_too_many_cards_for_1st_payment_liberal') and 
-(base_reason = 'too many cards for 1st payment - nothing good'))
-and 
-not ((sim_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
-(base_reason = 'Checkpoint rules did not produce any decision'))
--- and base_reason = 'Too many CCs unverified user with at least 2 approved payments'
+(base_reason = 'Checkpoint rules did not produce any decision')) 
+-- and (compared_sim.variables#>> '{Analytic, variables, Analytic,is_first}') !=  (base_sim.variables#>> '{Analytic, variables, Analytic,is_first}')
 
 ;
+select * from enrich_maxmind order by id desc limit 50
 
 
 
