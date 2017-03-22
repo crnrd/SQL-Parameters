@@ -1,0 +1,20 @@
+--first_decision:
+SELECT id payment_id,
+       status,
+       CASE
+         WHEN id IN (SELECT DISTINCT payment_id
+                     FROM verification_requests
+                     WHERE requesting_user_id != -1
+                     AND   verification_format != 'clarification') THEN 'verify'
+         WHEN id IN (SELECT DISTINCT payment_id
+                     FROM verification_requests
+                     WHERE verification_format = 'clarification') THEN 'clarification'
+         WHEN status IN (2,13) THEN 'approved'
+         WHEN status IN (11) THEN 'declined'
+         WHEN status = 16 THEN 'cancelled'
+         ELSE 'else'
+       END "label"
+FROM payments
+WHERE processor_id = 2
+AND   id > 40000
+AND   status IN (2,11,13,15,16)
