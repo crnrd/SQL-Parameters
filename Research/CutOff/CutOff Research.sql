@@ -48,7 +48,10 @@ where
 -- and
 -- and
 -- 
---  (sr.variables#>> '{Analytic, num_new_ccs_since_last_manually_approved_payment}')::int = 3 
+and
+ (sr.variables#>> '{Analytic, num_new_ccs_since_last_manually_approved_payment}')::int > 2
+ and
+  (sr.variables#>> '{Analytic, num_names_on_cards}')::int > 1
 --  and
  
 -- --  (sr.variables#>> '{Analytic, num_user_ccs}')::int > and
@@ -58,14 +61,14 @@ where
 -- (sr.variables#>> '{Analytic, mm_riskscore}') != 'no_data' 
 -- and (sr.variables#>> '{Analytic, mm_riskscore}')::float < 0.5
 -- and
-and
- ( 
-(sr.variables#>> '{Analytic, id_match_1}') = 'true' or
-(sr.variables#>> '{Analytic, good_user_three_ds_avs_match}') = 'true' or
-(sr.variables#>> '{Analytic, verified_phone_match}') = 'true' or
-(sr.variables#>> '{Analytic, phone_bin_ip_location_match}') = 'true' 
-
-)
+-- and
+--  ( 
+-- (sr.variables#>> '{Analytic, id_match_1}') = 'true' or
+-- (sr.variables#>> '{Analytic, good_user_three_ds_avs_match}') = 'true' or
+-- (sr.variables#>> '{Analytic, verified_phone_match}') = 'true' or
+-- (sr.variables#>> '{Analytic, phone_bin_ip_location_match}') = 'true' 
+-- 
+-- )
 and decision in ('manual'
 -- , 'verify'
 )
@@ -178,7 +181,7 @@ SELECT simplex_end_user_id,
        new_labeling as label,
 --        last_decision_id,
 --        first_decision_id,
-       p_id
+       p_id as id
 --        p_status,
 --        max_approve_id,
 --        max_decline_cancel_id,
@@ -282,6 +285,16 @@ FROM (SELECT *,
 
 
 select label,
+-- Total Payments
+100*total_payments/sum(total_payments) over () as total_payments,
+sum(total_payments) over () as total_payments_total,
+
+
+
+-- Approval Rule Candidate
+--  100*approval_rule/sum(approval_rule) over () as approval_rule,
+-- sum(approval_rule) over () as approval_rule_total,
+-- 
 --  100*no_bad_external_indicators/sum(no_bad_external_indicators) over () as no_bad_external_indicators,
 -- sum(no_bad_external_indicators) over () as no_bad_external_indicators_total,
 -- 
@@ -290,47 +303,67 @@ select label,
 --   
 --  100*external_social_data/sum(external_social_data) over () as external_social_data,
 --  sum(external_social_data) over () as external_social_data_total,
-100*total_payments/sum(total_payments) over () as total_payments,
-sum(total_payments) over () as total_payments_total,
+-- 100*old_email/sum(old_email) over () as old_email,
+-- sum(old_email) over () as old_email_total
 
-100*many_cards_and_info_change/sum(many_cards_and_info_change) over () as many_cards_and_info_change,
-sum(many_cards_and_info_change) over () as many_cards_and_info_change_total,
 
+-- Decline Rule Candidate
+-- 100*bad_linking/sum(bad_linking) over () as bad_linking,
+-- sum(bad_linking) over () as bad_linking_total,
+-- 100*proxy_far_address/sum(proxy_far_address) over () as proxy_far_address,
+-- sum(proxy_far_address) over () as proxy_far_address_total,
+
+
+-- 
 100*bad_indictors_no_proxy/sum(bad_indictors_no_proxy) over () as bad_indictors_no_proxy,
 sum(bad_indictors_no_proxy) over () as bad_indictors_no_proxy
 
 
   from (
 select distinct label, 
--- sum(case when no_bad_external_indicators = 1 or would_have_been_approved_by_simplex = 1 or external_social_data = 1 then 1 else 0 end)  as no_bad_external_indicators,
--- sum(would_have_been_approved_by_simplex)  as would_have_been_approved_by_simplex,
--- sum(external_social_data)  as external_social_data,
+sum(case when would_have_been_approved_by_simplex = 1 or external_social_data = 1 or old_email = 1 or avs_match_with_few_cards = 1 or 
+no_bad_external_indicators = 1 then 1 else 0 end)  as approval_rule,
+sum(no_bad_external_indicators)  as no_bad_external_indicators,
+sum(would_have_been_approved_by_simplex)  as would_have_been_approved_by_simplex,
+sum(external_social_data)  as external_social_data,
 count(*) as total_payments, 
 sum(many_cards_and_info_change)  as many_cards_and_info_change,
-sum(case when bad_indictors_no_proxy = 1  then 1 else 0 end) as bad_indictors_no_proxy
-
+sum(case when bad_indictors_no_proxy = 1  then 1 else 0 end) as bad_indictors_no_proxy,
+sum(case when old_email = 1  then 1 else 0 end) as old_email,
+sum(case when proxy_far_address = 1  then 1 else 0 end) as proxy_far_address,
+sum(case when bad_linking = 1  then 1 else 0 end) as bad_linking
 
 from (
 
 select label,
-case when not(
-low_mm_riskscore = 1 and 
-low_num_all = 1 
-and 
 
-high_emailage_score = 0 )
-then 1 else 0 end as no_good_external_indicators ,
-case when not (id_match_1 = 1 or phone_bin_ip_location_match = 1 or good_user_for_non_three_ds = 1 or verified_phone_match = 1) then 1 else 0 end as wouldnt_have_been_approved_by_simplex,
-case when not (has_facebook_account = 1 or has_linkedin_account = 1 or recent_phone_name_match = 1) then 1 else 0 end as no_external_social_data,
-
-case when many_names_on_card = 1
---  and many_addresses = 1 
-and 
-many_cards = 1 
+-- good indicators
+case when (low_mm_riskscore = 1 and low_num_all = 1 and high_emailage_score = 0 )then 1 else 0 end as no_bad_external_indicators ,
+case when  (id_match_1 = 1 or phone_bin_ip_location_match = 1 or good_user_for_non_three_ds = 1 or verified_phone_match = 1) then 1 else 0 end as would_have_been_approved_by_simplex,
+case when  (has_facebook_account = 1 or has_linkedin_account = 1 or recent_phone_name_match = 1 or is_social_media = 1) then 1 else 0 end as external_social_data,
+case when old_email = 1  then 1 else 0 end as old_email, 
+name_on_card_mismatch, 
+avs_match, 
+avs_match_with_few_cards, 
+was_auth_done_with_threeds,
+linked_to_another_user,
+low_num_all,
+mining_payment,
+email_name_match,
+high_mm_riskscore,
+-- bad indicators
+case when
+ emailage_bad_reason = 1
+    
 then 1 else 0 end as many_cards_and_info_change,
 
-case when (high_mm_riskscore +  emailage_bad_reason + high_emailage_score + linked_to_another_user + is_proxy + ip_address_far)> 2  then 1 else 0 end as bad_indictors_no_proxy
+case when (linked_by_cookie + linked_by_btc + linked_by_cc + linked_by_ip + linked_by_phone) > 0 then 1 else 0 end as bad_linking, 
 
+case when (email_name_match
+ )
+ >= 0  then 1 else 0 end as bad_indictors_no_proxy,
+ 
+case when (is_proxy + ip_address_far + unverified_phone + phone_country_mismatch + bin_mismatch  ) > 0 then 1 else 0 end proxy_far_address
 -- sum(low_mm_riskscore)as low_mm_riskscore, 
 -- sum(high_mm_riskscore) as high_mm_riskscore,
 -- sum(low_num_all) as low_num_all,
@@ -359,25 +392,35 @@ from (
 select label, decision, reason, 
 
 --bad vars
-case when (sr.variables#>> '{Analytic,mm_riskscore}') !='no_data' and (sr.variables#>> '{Analytic,mm_riskscore}')::float < 1 then 1 else 0 end as low_mm_riskscore,
-case when (sr.variables#>> '{Analytic,mm_riskscore}') !='no_data' and (sr.variables#>> '{Analytic,mm_riskscore}')::float > 60 then 1 else 0 end as high_mm_riskscore,
+case when (sr.variables#>> '{Analytic,mm_riskscore}') !='no_data' and (sr.variables#>> '{Analytic,mm_riskscore}')::float < 0.5 then 1 else 0 end as low_mm_riskscore,
+case when (sr.variables#>> '{Analytic,mm_riskscore}') !='no_data' and (sr.variables#>> '{Analytic,mm_riskscore}')::float >  70 then 1 else 0 end as high_mm_riskscore,
 case when (sr.variables#>> '{Analytic,num_all}') !='no_data' and (sr.variables#>> '{Analytic,num_all}')::float < 0.5 then 1 else 0 end as low_num_all,
-case when (sr.variables#>> '{Analytic,num_all}') !='no_data' and (sr.variables#>> '{Analytic,num_all}')::float > 0.6 then 1 else 0 end as high_num_all,
+case when (sr.variables#>> '{Analytic,num_all}') !='no_data' and (sr.variables#>> '{Analytic,num_all}')::float > 0.8 then 1 else 0 end as high_num_all,
 case when (sr.variables#>> '{Analytic,emailage_bad_reason}') ='true' then 1 else 0 end as emailage_bad_reason,
 case when (sr.variables#>> '{Analytic,ip_address_far}') ='true' then 1 else 0 end as ip_address_far,
+
+
 case when (sr.variables#>> '{Analytic,linked_to_another_user}') ='true' then 1 else 0 end as linked_to_another_user,
+case when (sr.variables#>> '{Analytic,cookie_num_users}')::int > 3 then 1 else 0 end as linked_by_cookie,
+case when (sr.variables#>> '{Analytic,btc_address_num_users}')::int > 2  then 1 else 0 end as linked_by_btc,
+case when (sr.variables#>> '{Analytic,cc_num_users}')::int > 3 then 1 else 0 end as linked_by_cc,
+case when (sr.variables#>> '{Analytic,ip_num_users}')::int > 2 then 1 else 0 end as linked_by_ip,
+case when (sr.variables#>> '{Analytic,max_num_phone_users}')::int > 2 then 1 else 0 end as linked_by_phone,
 
 case when (sr.variables#>> '{Analytic,user_num_addresses}')::int > 1 then 1 else 0 end as many_addresses,
-case when (sr.variables#>> '{Analytic,num_names_on_cards}')::int > 1 then 1 else 0 end as many_names_on_card,
+case when (sr.variables#>> '{Analytic,num_names_on_cards}')::int > 2 then 1 else 0 end as many_names_on_card,
+case when (sr.variables#>> '{Analytic,num_user_ccs}')::int >2 then 1 else 0 end as many_cards,
 case when (sr.variables#>> '{Analytic,is_proxy}') ='true' then 1 else 0 end as is_proxy,
-case when (sr.variables#>> '{Analytic,ea_score}') !='no_data' and  (sr.variables#>> '{Analytic,ea_score}')::int > 300 then 1 else 0 end as high_emailage_score,
-
+case when (sr.variables#>> '{Analytic,ea_score}') !='no_data' and  (sr.variables#>> '{Analytic,ea_score}')::int > 600 then 1 else 0 end as high_emailage_score,
+case when (sr.variables#>> '{Analytic,phone_country_match}') ='false' then 1 else 0 end as phone_country_mismatch,
 case when (sr.variables#>> '{Analytic,verified_phone}') ='false' then 1 else 0 end as unverified_phone,
 case when (sr.variables#>> '{Analytic,name_on_card_match}') ='no_match' then 1 else 0 end as name_on_card_mismatch,
-case when (sr.variables#>> '{Analytic,num_user_phones}')::int > 2 then 1 else 0 end as many_phones,
-case when (sr.variables#>> '{Analytic,num_user_ccs}')::int >2 then 1 else 0 end as many_cards,
-case when (sr.variables#>> '{Analytic,user_emailage}') !='no_data' and (sr.variables#>> '{Analytic,user_emailage}')::int < 30 then 1 else 0 end as new_email,
+case when (sr.variables#>> '{Analytic,mm_binmatch}')  = 'Yes' then 0 else 1 end as bin_mismatch,
+case when (sr.variables#>> '{Analytic,num_bin_countries}')::int> 1 then 1 else 0 end as many_bins,
+case when (sr.variables#>> '{Analytic,num_user_phones}')::int > 4 then 1 else 0 end as many_phones,
 
+case when (sr.variables#>> '{Analytic,user_emailage}') !='no_data' and (sr.variables#>> '{Analytic,user_emailage}')::int < 30 then 1 else 0 end as new_email,
+case when (sr.variables#>> '{Analytic,user_emailage}') !='no_data' and (sr.variables#>> '{Analytic,user_emailage}')::int > 1 then 1 else 0 end as old_email,
 --good vars
 case when (sr.variables#>> '{Analytic,id_match_1}') ='true' then 1 else 0 end as id_match_1,
 case when (sr.variables#>> '{Analytic,good_user_for_non_three_ds}') ='true' then 1 else 0 end as good_user_for_non_three_ds,
@@ -385,8 +428,13 @@ case when (sr.variables#>> '{Analytic,has_facebook_account}') ='true' then 1 els
 case when (sr.variables#>> '{Analytic,has_linkedin_account}') ='true' then 1 else 0 end as has_linkedin_account,
 case when (sr.variables#>> '{Analytic,verified_phone_match}') ='true' then 1 else 0 end as verified_phone_match,
 case when (sr.variables#>> '{Analytic,phone_bin_ip_location_match}') ='true' then 1 else 0 end as phone_bin_ip_location_match,
-case when (sr.variables#>> '{Analytic,recent_phone_name_match}') ='true' then 1 else 0 end as recent_phone_name_match
-
+case when (sr.variables#>> '{Analytic,recent_phone_name_match}') ='true' then 1 else 0 end as recent_phone_name_match,
+case when (sr.variables#>> '{Analytic,avs_match}') in ('full_match', 'partial_match') then 1 else 0 end as avs_match,
+case when (sr.variables#>> '{Analytic,num_ccs_with_avs_match_to_current_address}')::int > 1  then 1 else 0 end as avs_match_with_few_cards,
+case when (sr.variables#>> '{Analytic,was_auth_done_with_threeds}') = 'true'  then 1 else 0 end as was_auth_done_with_threeds,
+case when (sr.variables#>> '{Analytic,is_social_media}') = 'true'  then 1 else 0 end as is_social_media,
+case when (sr.variables#>> '{Analytic,email_name_match_score}')::float > 0.7 then 1 else 0 end as email_name_match,
+case when (sr.variables#>> '{Analytic,partner_type}') = 'mining_pool' then 1 else 0 end as mining_payment
 
 
 
@@ -412,7 +460,25 @@ and reason not in ('returning user last payment refund', 'manual user risk statu
 -- and decision = 'manual' 
 
 )a  )b 
-where wouldnt_have_been_approved_by_simplex = 1 and no_external_social_data = 1 and no_good_external_indicators = 1
+where 
+(name_on_card_mismatch = 0 and bad_linking = 0) and 
+(
+would_have_been_approved_by_simplex = 0
+and
+  external_social_data = 0
+and
+no_bad_external_indicators = 0
+and
+old_email = 0)
+and mining_payment = 0
+and was_auth_done_with_threeds = 0 
+and email_name_match = 0 
+-- -- and 
+-- --  bad_indictors_no_proxy = 0
+-- --  or (
+and 
+ proxy_far_address = 0
+-- and many_cards_and_info_change = 1
  group by 1 order by  1, 2   desc) c
 
  ;
