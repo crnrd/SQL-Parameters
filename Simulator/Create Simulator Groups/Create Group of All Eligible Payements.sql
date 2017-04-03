@@ -3,8 +3,9 @@ WITH p as (SELECT id,
                   created_at,
                   handling_at
             FROM payments
-            WHERE status NOT IN (0,12,19,20)
-            AND   id > 156000 )
+            WHERE status NOT IN (0,12,19,20, 23) 
+            and id in (select payment_id from decisions where (variables#>> '{Analytic, variables, Analytic, user_age_days}') != 'no_data' and (variables#>> '{Analytic, variables, Analytic, user_age_days}')::int > 500)
+            order by id desc limit 100)
 
 INSERT INTO simulator_parameters
 ( group_id,
@@ -24,7 +25,7 @@ FROM (SELECT DISTINCT p.id payment_id,
                    GROUP BY 1) d ON d.payment_id = p.id
         LEFT JOIN (SELECT DISTINCT payment_id,
                           MIN(updated_at +INTERVAL '1 minute') AS proc_updated_at
-                   FROM proc_requests
+                   FROM proc_requests_live
                    WHERE status = 'success'
                    AND   tx_type = 'authorization'
                    GROUP BY 1) pr ON p.id = pr.payment_id) a;
