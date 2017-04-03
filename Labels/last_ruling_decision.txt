@@ -1,6 +1,6 @@
 select
-            application_name, payment_id, decision, reason,
-            variables #> '{strength}' as strength, variables #> '{verification_type}' as verification_type
+            application_name, payment_id, decision, reason
+            --variables #> '{strength}' as strength, variables #> '{verification_type}' as verification_type
         from decisions where id in (select max_id from (
             select * from (
                 select *, max(id) over (PARTITION BY payment_id, application_id) max_id, max(application_id)
@@ -15,7 +15,7 @@ select
                              when d.application_name = 'Bender' then 2
                              else 1 end application_id
                     from decisions d
-                    where d.created_at < %s and d.payment_id in (%s) and not (d.application_name in ('Manual',
+                    where not (d.application_name in ('Manual',
                     'Offline Manual') and d.decision not in
                     ('approved', 'declined', 'cancelled'))
                     and d.application_name in ('EndUser', 'Scheduler', 'Manual', 'Offline Manual',
@@ -24,4 +24,4 @@ select
                 )a
             )b
         where max_application_id = application_id and id=max_id)h)
-        order by payment_id asc;
+        order by payment_id desc
