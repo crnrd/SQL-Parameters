@@ -1,4 +1,5 @@
-create view v_label_last_ruling_decision as 
+-- run as simplexcc or application
+create or replace view v_label_last_ruling_decision as 
 select
             application_name, payment_id, decision, reason,
             variables #> '{strength}' as strength, variables #> '{verification_type}' as verification_type

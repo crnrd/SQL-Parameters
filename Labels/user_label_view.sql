@@ -1,4 +1,5 @@
-create view v_label_user as
+-- run as simplexcc or application
+create or replace view v_label_user as
 SELECT simplex_end_user_id,
        new_labeling,
        last_decision_id,
@@ -128,7 +129,7 @@ FROM (SELECT *,
                                                           JOIN payments p ON p.id = d.payment_id
                                                            JOIN simplex_end_users seu ON seu.id = p.simplex_end_user_id
                                                         WHERE d.application_name NOT IN ('Challenger','Nibbler_Challenger')
-
+                                                        
 -- You can add some arguments here, possibly like this (this will imporve runing time):
 -- and where d.payment_id in (****add something****)
                                                         GROUP BY 1,
@@ -147,3 +148,17 @@ FROM (SELECT *,
                          AND   p.status NOT IN (0,1,19,6,20,23)) c) d) e) f) g
 -- Add the line below to get a lighter version of the query, this will show all users (each one just once), instead of all payments in the original version. This is useful if you care about the labeling of each user:
 -- where p_id in (select distinct max(id) over (partition by simplex_end_user_id) as max_p_id from payments where simplex_end_user_id is not null and status not in (0,1, 19, 6, 20))
+;
+
+
+GRANT ALL PRIVILEGES ON v_label_user TO analyst, simplexcc, application,playground_updater;
+alter view v_label_user OWNER to application;
+
+-- run as simplexcc
+drop materialized view vm_label_user;
+create materialized view vm_label_user as select * from v_label_user;
+CREATE INDEX vm_label_user_simplex_end_user_id_idx ON vm_label_user (simplex_end_user_id);
+CREATE INDEX vm_label_user_p_id_idx ON vm_label_user (p_id);
+GRANT ALL PRIVILEGES ON vm_label_user TO analyst, simplexcc, application, playground_updater;
+alter materialized view vm_label_user owner to playground_updater;
+select * from vm_label_user limit 50;

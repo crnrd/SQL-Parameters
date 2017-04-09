@@ -4,7 +4,11 @@
 -- 2. Good = status 2,13
 -- 3. Cancelled = Status 16, Status 11 when weak decline, reason: 'Bad Indicators, Unable to send Verification' or 'Other'
 -- 4. Bad = status 11
-create view v_label_final_status as
+
+
+-- run as simplexcc or application
+drop view v_label_final_status;
+create or replace view v_label_final_status as
 select id, label from (
  select id, status, chargeback_at,
  case when status = 15 or chargeback_at is not null then 'chargeback'
@@ -21,14 +25,18 @@ select id, label from (
  )a
 where label <> '';
 
-GRANT ALL PRIVILEGES ON v_label_final_status TO analyst, simplexcc, application;
+GRANT ALL PRIVILEGES ON v_label_final_status TO analyst, simplexcc, application, playground_updater;
+alter view v_label_final_status OWNER to application;
 
+-- run as simplexcc
 create materialized view vm_label_final_status as select * from v_label_final_status;
-GRANT ALL PRIVILEGES ON vm_label_final_status TO analyst, simplexcc, application;
+GRANT ALL PRIVILEGES ON vm_label_final_status TO analyst, simplexcc, application, playground_updater;
 
 CREATE INDEX vm_label_final_status_id_idx ON vm_label_final_status (id);
 
 
 CREATE INDEX vm_label_final_status_label_idx ON vm_label_final_status (label);
 
-alter materialized view vm_label_final_status OWNER to 'playground_updater';
+alter materialized view vm_label_final_status OWNER to playground_updater;
+refresh materialized view vm_label_final_status;
+select max(id) from vm_label_final_payment_label;
