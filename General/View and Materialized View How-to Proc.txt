@@ -1,0 +1,68 @@
+View and Materialized View Proc
+ 
+Short video on view and materialized view:
+https://www.youtube.com/watch?v=PI8UrOAZs2U
+https://www.youtube.com/watch?v=06HlvmB8mDk
+ 
+ 
+VIEW TABLE
+General: View turns your query into a table. Does not store data. Better than ‘with’. 
+How to create view table:
+CREATE VIEW v_nitsan_dec
+(payment_id, application_name, reason)
+AS 
+select payment_id, application_name, reason from decisions order by id desc limit 50;
+ 
+create view v_(view name) (column name(s)) as (query)
+Updates: updates every time you run the query.
+ 
+ 
+2) MATERIALIZED VIEW TABLE
+ 
+General: Stores data, has better performance than view. Consult with devs before creating materialized view tables.
+How to create view table
+create materialized view vm_nitsan_dec as select * from v_nitsan_dec;
+How to update table:
+refresh materialized view vm_nitsan_dec 
+How to index table:
+CREATE INDEX [index_name] ON [materialized view name](column names(s));
+Index_name = [materialized view name]_[column names]_idx
+CREATE INDEX vm_nitsan_dec_payment_id_idx ON vm_nitsan_dec (payment_id);
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+How to Make a Table
+ 
+ 
+1)create table linking_results_1 (
+  payment_id INTEGER, 
+  time_point TIMESTAMP,
+  manual_linked_to_another_user TEXT,
+  manual_linked_since_last_manually_decided_payment text,
+  new_manual_linked_since_last_manually_decided_payment TEXT, 
+ 
+new_is_new_credit_card_linking TEXT,
+new_is_new_phone_linking TEXT,
+new_is_new_cookie_linking TEXT,
+new_is_new_btc_address_linking TEXT,
+ 
+is_new_credit_card_linking TEXT,
+is_new_phone_linking TEXT,
+is_new_cookie_linking TEXT,
+is_new_btc_address_linking TEXT,
+ 
+new_num_user_phones TEXT,
+new_num_user_ccs TEXT
+);
+ 
+ 
+ 
+2) insert into linking_results_1
+(..the query..
+)
+;
