@@ -15,9 +15,11 @@ WbVarDef pid = $[?pid];
 -- 2. variables and lists creation
 -----------------------------------------------------------------------------------------------
 
-WbVarDef seu_id = "select simplex_end_user_id from payments where id = $[pid]"; 
+wbvardef seu_id = 0; wbvardef peu_id = 0;
 
-WbVarDef peu_id = "select id from partner_end_users where email ilike (select email from simplex_end_users where id = ($[seu_id]))"; 
+WbVarDef seu_id =@ "select simplex_end_user_id from payments where id = $[pid]"; 
+
+WbVarDef peu_id =@ "select id from partner_end_users where email ilike (select email from payments where  id = $[pid])"; 
 
 WbVarDef payments_ids = "select distinct id from payments where simplex_end_user_id = ($[seu_id]) or partner_end_user_id in ($[peu_id])"; 
 
@@ -30,11 +32,9 @@ OR partner_end_user_id in (select distinct partner_end_user_id from payments whe
 UNION
 select phone from partner_end_users_log where current_end_user_id in ($[peu_id]) and phone != ''
 UNION
-select phone from simplex_end_users_log where current_simplex_user_id = ($[seu_id]) and phone != '' 
+select phone from payments where (simplex_end_user_id = ($[seu_id]) and phone != '')  or (partner_end_user_id = ($[seu_id]) and phone != '')
 UNION
-select phone from partner_end_users where id in ($[peu_id]) and phone != ''
-UNION
-select phone from simplex_end_users where id = ($[seu_id]) and phone != '' ";
+select phone from partner_end_users where id in ($[peu_id]) and phone != '' ";
 
 WbVarDef ccs = "
 select credit_card from payments where simplex_end_user_id = ($[seu_id]) and credit_card !=''
@@ -60,6 +60,34 @@ or payment_id in (select id from payments where simplex_end_user_id = ($[seu_id]
 -----------------------------------------------------------------------------------------------
 -- 3. tables creation
 -----------------------------------------------------------------------------------------------
+
+--@WbResult All Linked Credit Cards
+select distinct email,payment_id,partner_end_user_id,credit_card, case when status = 0 and payment_id in (select id from payments where created_at < (NOW() -INTERVAL '6 hours')) then 20 else status end status 
+
+
+
+,card_expiry_year,card_expiry_month from (
+select peu.email, p.id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments p 
+left join partner_end_users peu on p.partner_end_user_id = peu.id
+where p.credit_card in ($[ccs])  
+UNION ALL 
+select peu.email, p.id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments p 
+left join partner_end_users peu on p.partner_end_user_id = peu.id
+where p.validation_request_body #>> '{credit_card}' in ($[ccs])  
+UNION ALL 
+select peu.email, pl.current_payment_id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments_log pl
+left join partner_end_users peu on pl.partner_end_user_id = peu.id
+where pl.credit_card in ($[ccs])    
+UNION ALL 
+select peu.email, pl.current_payment_id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments_log pl
+left join partner_end_users peu on pl.partner_end_user_id = peu.id
+where pl.validation_request_body #>> '{credit_card}' in ($[ccs]) 
+UNION ALL 
+select peu.email, pr.payment_id, peu.id, pr.masked_credit_card credit_card, p.status, cast(split_part(raw_response->>'expirydate','/',2) as int) card_expiry_year, cast(split_part(raw_response->>'expirydate','/',1) as int) card_expiry_month from proc_requests pr
+left join payments p on p.id = pr.payment_id
+left join partner_end_users peu on p.partner_end_user_id = peu.id
+where pr.masked_credit_card in ($[ccs]) ) a order by credit_card, email;
+
 --@WbResult Number of linked elements 
 -- element , number of emails who used it
 select element_type, count(distinct(email)) as num_users from (
@@ -89,11 +117,6 @@ UNION ALL
 select peu.email, 'btc_address' element_type  from payments_log pl
 left join partner_end_users peu on pl.partner_end_user_id = peu.id
 where pl.btc_address in ($[btc_addresses]) and  pl.btc_address != ''
-UNION ALL
---address
-select peu.email, 'address' element_type from payments p 
-left join partner_end_users peu on p.partner_end_user_id = peu.id
-where lower(p.address1 || ' ' || p.address2 || ' ' || p.city || ' ' || p.state || ' ' || p.country || ' ' || p.zipcode) = (select lower(address1 || ' ' || address2 || ' ' || city || ' ' || state || ' ' || country || ' ' || zipcode) from payments where id = $[pid])  
 UNION ALL
 -- ccs
 select peu.email, 'masked CC number' element_type from payments p 
@@ -128,11 +151,9 @@ union all
 select email,phone from partner_end_users 
 where phone in ($[phones]) 
 union all
-select email,phone from simplex_end_users_log
+select email,phone from payments
 where phone in ($[phones])
-union all
-select email,phone from simplex_end_users
-where phone in ($[phones])
+
 )a group by 1
 order by num_users desc;
 
@@ -173,8 +194,6 @@ left join partner_end_users peu on pl.partner_end_user_id = peu.id
 where pl.btc_address  in  ($[btc_addresses]) and pl.btc_address != ''
 group by 1
 UNION ALL
-
-
 -- -- ccs
 select distinct email,last_payment,number_of_payments_it_was_used,element_type from (
 select peu.email, max(p.id)  as last_payment, count(distinct p.id) as number_of_payments_it_was_used, 'masked CC number' element_type from payments p 
@@ -216,44 +235,16 @@ order by element_type, email;
                        select  peu.phone, peu.email as email from partner_end_users peu
                        where peu.phone in ($[phones]) and peu.created_at < now()
                        union all
-                       select  phone, email as email from simplex_end_users_log
-                       where phone in ($[phones]) and created_at < now()
-                       union all
-                       select  phone,  email as email from simplex_end_users
+  
+                       select  phone,  email as email from payments
                        where phone in ($[phones]) and created_at < now()) a
                        order by phone, email;
 -----------------------------------------------------------------------------------------------                          
 -----------------------------------------------------------------------------------------------                       
---@WbResult All Linked Credit Cards
-select distinct email,payment_id,partner_end_user_id,credit_card, case when status = 0 and payment_id in (select id from payments where created_at < (NOW() -INTERVAL '6 hours')) then 20 else status end status 
-
-
-
-,card_expiry_year,card_expiry_month from (
-select peu.email, p.id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments p 
-left join partner_end_users peu on p.partner_end_user_id = peu.id
-where p.credit_card in ($[ccs])  
-UNION ALL 
-select peu.email, p.id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments p 
-left join partner_end_users peu on p.partner_end_user_id = peu.id
-where p.validation_request_body #>> '{credit_card}' in ($[ccs])  
-UNION ALL 
-select peu.email, pl.current_payment_id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments_log pl
-left join partner_end_users peu on pl.partner_end_user_id = peu.id
-where pl.credit_card in ($[ccs])    
-UNION ALL 
-select peu.email, pl.current_payment_id as payment_id, partner_end_user_id, credit_card, status, card_expiry_year, card_expiry_month from payments_log pl
-left join partner_end_users peu on pl.partner_end_user_id = peu.id
-where pl.validation_request_body #>> '{credit_card}' in ($[ccs]) 
-UNION ALL 
-select peu.email, pr.payment_id, peu.id, pr.masked_credit_card credit_card, p.status, cast(split_part(raw_response->>'expirydate','/',2) as int) card_expiry_year, cast(split_part(raw_response->>'expirydate','/',1) as int) card_expiry_month from proc_requests pr
-left join payments p on p.id = pr.payment_id
-left join partner_end_users peu on p.partner_end_user_id = peu.id
-where pr.masked_credit_card in ($[ccs]) ) a order by credit_card, email;
 ------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- @WbResult all linked emails, payments and their status
-select b.email, p.id, p.status, p.chargeback_at from (
+select b.email, p.id, p.status from (
 select distinct email from (
 select peu.email, max(p.id)  as last_payment ,count(distinct p.id) as number_of_payments_it_was_used, 'cookie' element_type  from payments p
 left join partner_end_users peu on p.partner_end_user_id = peu.id
@@ -262,7 +253,7 @@ and (simplex_login->> 'uaid') != ''
 group by 1
 UNION ALL
 --ip
-select peu.email, max(p.id)  as last_payment ,count(distinct p.id)  as number_of_payments_it_was_used, 'ip' element_type  from payments p
+select peu.email, max(p.id)  as last_payment ,count(distinct p.id) as number_of_payments_it_was_used, 'ip' element_type  from payments p
 left join partner_end_users peu on p.partner_end_user_id = peu.id
 where ((simplex_login->> 'ip') = (select (simplex_login->> 'ip') from payments where id = $[pid])  
 or (partner_login->> 'ip') = (select (simplex_login->> 'ip') from payments where id = $[pid]))
@@ -286,7 +277,6 @@ left join partner_end_users peu on pl.partner_end_user_id = peu.id
 where pl.btc_address  in  ($[btc_addresses]) and pl.btc_address != ''
 group by 1
 UNION ALL
-
 -- -- ccs
 select distinct email,last_payment,number_of_payments_it_was_used,element_type from (
 select peu.email, max(p.id)  as last_payment, count(distinct p.id) as number_of_payments_it_was_used, 'masked CC number' element_type from payments p 
@@ -316,11 +306,7 @@ where pr.masked_credit_card in ($[ccs])
 group by 1 )a
 order by element_type, email) b) b
 join payments p
-<<<<<<< HEAD
-on p.validation_request_body->>'email' = a.email
-=======
-on p.validation_request_body->>'email' = c.email
->>>>>>> test_query
+on p.validation_request_body->>'email' = b.email
 ;
 -----------------------------------------------------------------------------------------------                          
 
