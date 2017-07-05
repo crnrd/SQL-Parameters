@@ -4,7 +4,11 @@ WbVarDef var1 ='$[?var1]';
 WbVarDef payment1 ='$[?payment1]';
 
 --@Wbresult difference in decisions (count)
-select first_dec, second_dec, first_reason, second_reason, count(*) from (
+select first_dec, second_dec, first_reason, second_reason, 
+--if you want to see an example payment_id for each unique difference, comment-out "count(*)" below, and comment-in "max(payment_id)"
+count(*) 
+--max(payment_id) as max_payment_id
+from (
 SELECT first_sim.payment_id,
       first_sim.decision as first_dec,
       second_sim.decision AS second_dec,
@@ -40,7 +44,10 @@ and second_reason not like  'random_approve%'
 ;
 
 --@Wbresult difference in variables (count)
-SELECT key, first_sim_value, second_sim_value, count(*)
+SELECT key, first_sim_value, second_sim_value, 
+--if you want to see an example payment_id for each unique difference, comment-out "count(*)" below, and comment-in "max(payment_id)"
+count(*)
+--max(payment_id) as max_payment_id
 FROM (
 SELECT Challenger.payment_id,
              Challenger.key,
@@ -72,7 +79,10 @@ challenger_value is null
 or champion_value is null
 or 
 (lower (challenger_value) !=lower (champion_value)
-and Challenger.key not in ('num_non_us_ca', 'variable_for_random_approve_all_num_non_us_ca_0_65_threshold'))
+and Challenger.key not in ('num_non_us_ca', 'variable_for_random_approve_all_num_non_us_ca_0_65_threshold',
+'random_value_for_control_group','whitepages_v3_row_id','num_all',
+'payment_model_score','card_verification_degree','variable_for_approve_payment_model_score_low_threshold',
+'variable_for_random_approve','variable_for_random_approve_num_all_high_threshold','variable_for_random_approve_num_all_low_threshold'))
 ) s
 group by 1, 2, 3
 order by 1, 2, 3;
