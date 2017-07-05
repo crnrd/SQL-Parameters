@@ -1,58 +1,60 @@
 SELECT distinct on (p.id)
 p.id,
 p.created_at,
+e.data -> 'ip_domain' ip_domain,
+       e.data -> 'ip_city' ip_city,
+       e.data -> 'binCountry' maxmind_bin_country,
+       e.data -> 'countryCode' ip_country,
+       e.data -> 'binName' maxmind_issuer_bank,
+       e.data -> 'ip_region' ip_region,
+       e.data -> 'ip_isp' ip_isp,
 p.status,
 p.chargeback_at cbk,
 p.simplex_end_user_id seu_id,
---p.pay_to_partner_id,
-p.maxmind#>> '{ip_domain}' as ip_domain,
+p.pay_to_partner_id,
 seu.email,
-p.maxmind#>> '{ip_region}' ip_region,
-       p.maxmind -> 'binCountry' max_bin_country,
-       p.maxmind -> 'countryCode' ip_country,
 variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'is_proxy' is_proxy,
-       maxmind -> 'ip_isp' isp,
        d.variables#>> '{Analytic, variables, Analytic, kyc_verification}' kyc,
-       variables -> 'Analytic' -> 'reason' reason,
-       variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'card_previously_reviewed_by_analyst' card_analyst,
-       variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'user_previously_reviewed_by_analyst' user_analyst,
-       variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'recent_phone_callerid_name_match' callerid_name_match,
-       d.variables#>> '{Analytic, variables, Analytic, verified_phone}' verified_phone,
-       p.credit_card,
-       p.maxmind -> 'binName' max_bank,
-       p.phone,
-       p.maxmind ->> 'proxyScore' AS mm_proxyscore,
-       p.maxmind ->> 'riskScore' AS riskscore,
-       p.btc_address,
-       p.city
-
+variables -> 'Analytic' -> 'reason' reason,
+variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'card_previously_reviewed_by_analyst' card_analyst,
+variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'user_previously_reviewed_by_analyst' user_analyst,
+variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'recent_phone_callerid_name_match' callerid_name_match,
+d.variables#>> '{Analytic, variables, Analytic, verified_phone}' verified_phone,
+       left(p.credit_card,6) bin,
+p.phone,
+p.btc_address,
+p.city
 FROM payments p
   LEFT JOIN simplex_end_users seu ON seu.id = p.simplex_end_user_id
   LEFT JOIN decisions d ON p.id = d.payment_id
   LEFT JOIN chargebacks c ON c.payment_id = p.id
+  join enrich_maxmind e on p.partner_login#>>'{ip}' = e.request_Data#>> '{i}'
 WHERE p.id > 200000
---AND    application_name = 'Bender_Auto_Decide'
+AND    application_name = 'Bender_Auto_Decide'
 --AND    application_name = 'Bender_Pre_Auth_Decide'
 --AND   p.status IN (0,2,11,13,15,16,20)
 --aND   p.maxmind -> 'binCountry' = '"US"'
 --AND   p.country = 'LV'
---and p.maxmind -> 'binName' = '"Yapi Kredi"'
---and maxmind -> 'ip_isp' != '"Verizon Wireless"'
 --and variables -> 'Analytic' -> 'reason' = '"approve_threeds_liable"' 
 --or variables -> 'Analytic' -> 'reason' = '"decent user nothing bad under limit"' )
 --insert domain here
---and p.maxmind#>> '{ip_region}' = 'PA'
+     --and  e.data#>> '{ip_domain}'  = 'netia.pl'
+--      and  e.data#>> '{ip_city}'  = 'bellsouth.net'
+--      and  e.data#>> '{binCountry}'  = 'bellsouth.net'
+--      and  e.data#>> '{countryCode}'  = 'bellsouth.net'
+      and  e.data#>> '{binName}'  = 'Skrill'
+--      and  e.data#>> '{ip_region}'  = 'bellsouth.net'
+--      and  e.data#>> '{ip_isp}'  = 'bellsouth.net'
 --and d.variables#>> '{Analytic, variables, Analytic, kyc_verification}'='false'
---and pay_to_partner_id != 1
+--and pay_to_partner_id = 38
+--and variables -> 'Analytic' -> 'reason' = '"verify unverified phone fraud ring type"'
  --and variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'card_previously_reviewed_by_analyst' = 'false'
   --   and  variables -> 'Analytic' -> 'variables' -> 'Analytic' -> 'user_previously_reviewed_by_analyst' = 'false'
---and p.credit_card ilike '406742%'
+--and p.credit_card ilike '405621%'
 --and d.variables#>> '{Analytic, variables, Analytic, is_first}' = 'true'
+--and d.variables#>> '{Analytic, variables, Analytic, ip_bin_match}' = 'false'
 --and (d.reason = 'verify ip bin mismatch unverified phone' or d.reason = 'verify_suspicious_bin_bank_ip_domain_combination')
 --and p.city = 'Plano'
---and p.maxmind ->> 'countryCode' = 'FR'
---AND   (p.maxmind -> 'binCountry') != (p.maxmind -> 'countryCode')
---and seu.email ilike '%warneke.us'
---and p.maxmind#>> '{ip_domain}' =  'iskon.hr'
+--and seu.email ilike '%googlemail.com'
 --and p.id = 489365
 ORDER BY 1 DESC LIMIT 300;
