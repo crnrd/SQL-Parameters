@@ -6,7 +6,7 @@ WbVarDef payment1 ='$[?payment1]';
 --@Wbresult difference in decisions (count)
 select first_dec, second_dec, first_reason, second_reason, count(*) from (
 SELECT first_sim.payment_id,
-      first_sim.decision as first_dec,
+      first_sim.decision as  first_dec,
       second_sim.decision AS second_dec,
       first_sim.reason as first_reason,
       second_sim.reason as second_reason
@@ -178,4 +178,5 @@ where payment_id in ($[payment1])
 select distinct status_code, count(*) from simulator_results where 
 ;
 
+select * from enrich_maxmind order by 1 desc limit 50;
 

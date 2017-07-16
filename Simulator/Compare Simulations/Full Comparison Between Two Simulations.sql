@@ -11,7 +11,7 @@ SELECT base_sim.run_id as base_rid,
        base_sim.group_id as base_group,
        compared_sim.group_id as sim_group,
        base_sim.time_point as base_pit,
-       compared_sim.time_point as sim_pit,       
+       compared_sim.time_point as sim_pit,        
        base_sim.payment_id as payment_id,
        base_sim.decision AS base_dec,
        compared_sim.decision sim_dec,
@@ -41,8 +41,8 @@ where run_id = ($[sim_rid])) compared_sim
 left join payments p on p.id = base_sim.payment_id
 ) a
 where 
- base_reason != sim_reason
-and not ((base_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
+--  base_reason != sim_reason
+ not ((base_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
 (sim_reason = 'Checkpoint rules did not produce any decision')) and
 not ((base_reason = 'random_approve_num_all_under_limit_low_threshold good approve score') and 
 (sim_reason = 'Checkpoint rules did not produce any decision')) and 
@@ -59,6 +59,7 @@ not ((sim_reason = 'decline_too_many_cards_for_1st_payment_liberal') and
 and 
 not ((sim_reason = 'random_approve_num_all_under_limit_high_threshold good approve score') and 
 (base_reason = 'Checkpoint rules did not produce any decision'))
+and sim_reason = 'input data null - decline_emailage_alert_is_first'
 -- and base_reason = 'Too many CCs unverified user with at least 2 approved payments'
 
 ;
