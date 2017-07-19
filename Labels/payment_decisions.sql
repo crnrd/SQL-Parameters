@@ -1,6 +1,6 @@
 refresh materialized view ma_view_payment_decisions;
  
-drop materialized view ma_view_payment_decisions;
+drop materialized view ma_view_payment_decisions cascade ;
 
 create  materialized view ma_view_payment_decisions
  (payment_id, 
@@ -82,4 +82,4 @@ left join batch_decision bd on bd.payment_id = p_ids.id
 ;
 commit;
 
-select count(*) from ma_view_payment_decisions_2;
+select count(*) from ma_view_payment_decisions;

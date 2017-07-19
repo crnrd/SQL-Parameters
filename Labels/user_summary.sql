@@ -1,18 +1,22 @@
-create materialized view user_summary
+drop materialized view mv_user_summary ;
+
 (email, 
 user_last_decision, 
 user_last_manual_decision, 
+user_risk_status,
 fraud_payments, 
+service_cb_or_refund_payments, 
 old_approved_payments, 
 approved_payments) 
 as 
+;
 with 
 p_ids  as (select id, email from payments where status in (2, 13, 15,  11, 16, 22)
-and  id < 810000 
--- and id = 809944
+-- and  id < 810000 
+and id = 799041
 -- order by 1 desc limit 50000
 ), 
-email_p_ids as (select id, created_at, email from payments where email in (select email from p_ids)),
+email_p_ids as (select id, created_at, email from payments where email in (select email from p_ids) and id < 810000),
 all_labels as 
 (select distinct on (payment_id)
 pfd.payment_id,
@@ -51,7 +55,9 @@ user_summary as
 (select distinct user_payment_stats.email, 
 uld.last_decision as user_last_decision, 
 ulmd.last_decision as user_last_menual_decision, 
+user_risk_status, 
 sum(fraud_payment) as fraud_payments, 
+sum(service_cb_or_refund_payment) as service_cb_or_refund_payments, 
 sum(old_approved_payment) as old_approved_payments, 
 sum(approved_payment) as approved_payments 
 
@@ -65,8 +71,10 @@ from
  al.last_decision, 
  al.last_state,
  case when al.last_state in ('fraud') then 1 else 0 end as fraud_payment,
+case when al.last_state in ('service_cb', 'refund') then 1 else 0 end as service_cb_or_refund_payment,
 case when al.last_state in ('approved_old') then 1 else 0 end as old_approved_payment,
 case when al.last_state in ('approved') then 1 else 0 end as approved_payment
+
  
 
 
@@ -77,8 +85,9 @@ left join all_labels al on al.payment_id = p.id
 left join user_last_decision uld on uld.email = user_payment_stats.email
 left join user_last_manual_decision ulmd on ulmd.email = user_payment_stats.email
 
-group by 1, 2,3
+group by 1, 2,3, 4
 )
 select * from user_summary;
 
 commit;
+select * from mv_user_summary where email = '1smonttyy@gmail.com' order by 1 desc limit 50;
