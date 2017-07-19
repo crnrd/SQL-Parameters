@@ -33,7 +33,8 @@ select reason, zachs_label, decision, num_payments,
 -- sum(case when zachs_label = 'Bad' then num_payments else 0 end ) as bad_payments 
 100*num_payments/sum(num_payments)
 over (partition by reason) as perc from (
-select distinct reason, zachs_label, decision,  count(distinct payment_id) as num_payments from simulator_results sr
+select distinct reason, zachs_label, decision,  count(distinct payment_id) as num_payments 
+from simulator_results sr
 left join 
 zach_label zl on zl.id = sr.payment_id
 where 
@@ -41,17 +42,17 @@ where
 -- and ((reason ilike 'returning % user over limit 1' 
 -- and decision = 'verify') or  (reason ilike 'verified card breached velocity limits during last day/week/month' and decision ='manual'))
 (sr.variables#>> '{Analytic, user_previously_reviewed_by_analyst}') = 'false'
--- and (sr.variables#>> '{Analytic, emailage_bad_reason}') = 'true'
+and (sr.variables#>> '{Analytic, emailage_bad_reason}') = 'true'
 
 
 --  and (sr.variables#>> '{Analytic, num_user_phones}')::int > 2
 -- and
 -- and
 -- 
-and
- (sr.variables#>> '{Analytic, num_new_ccs_since_last_manually_approved_payment}')::int > 2
- and
-  (sr.variables#>> '{Analytic, num_names_on_cards}')::int > 1
+-- and
+--  (sr.variables#>> '{Analytic, num_new_ccs_since_last_manually_approved_payment}')::int > 2
+--  and
+--   (sr.variables#>> '{Analytic, num_names_on_cards}')::int > 1
 --  and
  
 -- --  (sr.variables#>> '{Analytic, num_user_ccs}')::int > and
@@ -69,8 +70,8 @@ and
 -- (sr.variables#>> '{Analytic, phone_bin_ip_location_match}') = 'true' 
 -- 
 -- )
-and decision in ('manual'
--- , 'verify'
+and decision in (
+ 'manual'
 )
 
 -- and decision = 'manual' 
@@ -287,20 +288,20 @@ FROM (SELECT *,
 select label,
 -- Total Payments
 100*total_payments/sum(total_payments) over () as total_payments,
-sum(total_payments) over () as total_payments_total,
+sum(total_payments) over () as total_payments_total
 
 
-
--- Approval Rule Candidate
+-- 
+-- -- Approval Rule Candidate
 --  100*approval_rule/sum(approval_rule) over () as approval_rule,
 -- sum(approval_rule) over () as approval_rule_total,
 -- 
 --  100*no_bad_external_indicators/sum(no_bad_external_indicators) over () as no_bad_external_indicators,
 -- sum(no_bad_external_indicators) over () as no_bad_external_indicators_total,
--- 
+-- -- 
 --  100*would_have_been_approved_by_simplex/sum(would_have_been_approved_by_simplex) over () as would_have_been_approved_by_simplex,
 --   sum(would_have_been_approved_by_simplex) over () as would_have_been_approved_by_simplex_total,
---   
+-- --   
 --  100*external_social_data/sum(external_social_data) over () as external_social_data,
 --  sum(external_social_data) over () as external_social_data_total,
 -- 100*old_email/sum(old_email) over () as old_email,
@@ -312,17 +313,23 @@ sum(total_payments) over () as total_payments_total,
 -- sum(bad_linking) over () as bad_linking_total,
 -- 100*proxy_far_address/sum(proxy_far_address) over () as proxy_far_address,
 -- sum(proxy_far_address) over () as proxy_far_address_total,
-
-
 -- 
-100*bad_indictors_no_proxy/sum(bad_indictors_no_proxy) over () as bad_indictors_no_proxy,
-sum(bad_indictors_no_proxy) over () as bad_indictors_no_proxy
+-- 100*many_cards_and_info_change/sum(many_cards_and_info_change) over () as many_cards_and_info_change,
+-- sum(many_cards_and_info_change) over () as many_cards_and_info_change_total
+-- 
+-- 100*bad_indictors_no_proxy/sum(bad_indictors_no_proxy) over () as bad_indictors_no_proxy,
+-- sum(bad_indictors_no_proxy) over () as bad_indictors_no_proxy
 
 
   from (
 select distinct label, 
-sum(case when would_have_been_approved_by_simplex = 1 or external_social_data = 1 or old_email = 1 or avs_match_with_few_cards = 1 or 
-no_bad_external_indicators = 1 then 1 else 0 end)  as approval_rule,
+sum(case when (
+would_have_been_approved_by_simplex +
+ external_social_data +
+  old_email + 
+   avs_match_with_few_cards 
+   +   no_bad_external_indicators 
+   ) > 0  then 1 else 0 end)  as approval_rule,
 sum(no_bad_external_indicators)  as no_bad_external_indicators,
 sum(would_have_been_approved_by_simplex)  as would_have_been_approved_by_simplex,
 sum(external_social_data)  as external_social_data,
@@ -338,10 +345,18 @@ from (
 select label,
 
 -- good indicators
-case when (low_mm_riskscore = 1 and low_num_all = 1 and high_emailage_score = 0 )then 1 else 0 end as no_bad_external_indicators ,
+case when 
+-- (
+low_mm_riskscore = 1 
+-- and low_num_all = 1 and high_emailage_score = 0 )
+then 1 else 0 end as no_bad_external_indicators ,
 case when  (id_match_1 = 1 or phone_bin_ip_location_match = 1 or good_user_for_non_three_ds = 1 or verified_phone_match = 1) then 1 else 0 end as would_have_been_approved_by_simplex,
-case when  (has_facebook_account = 1 or has_linkedin_account = 1 or recent_phone_name_match = 1 or is_social_media = 1) then 1 else 0 end as external_social_data,
-case when old_email = 1  then 1 else 0 end as old_email, 
+case when  (has_facebook_account = 1 or has_linkedin_account = 1 or (recent_phone_name_match = 1) or is_social_media = 1) then 1 else 0 end as external_social_data,
+case when old_email = 1 
+and emailage_bad_reason = 0
+ then 1 else 0 end as old_email, 
+ 
+-- variables 
 name_on_card_mismatch, 
 avs_match, 
 avs_match_with_few_cards, 
@@ -351,19 +366,28 @@ low_num_all,
 mining_payment,
 email_name_match,
 high_mm_riskscore,
+verified_user, 
+recently_approved,
+many_names_on_card,
+linked_to_user_risk_status,
+carder,
+issuer_alert,
+decent_user_nothing_bad,
+
 -- bad indicators
 case when
- emailage_bad_reason = 1
-    
+ 
+    name_on_card_mismatch = 1
 then 1 else 0 end as many_cards_and_info_change,
 
-case when (linked_by_cookie + linked_by_btc + linked_by_cc + linked_by_ip + linked_by_phone) > 0 then 1 else 0 end as bad_linking, 
+case when (linked_by_cookie + linked_by_btc + linked_by_cc + linked_by_ip + linked_by_phone + linked_to_user_risk_status) > 0 then 1 else 0 end as bad_linking, 
 
 case when (email_name_match
  )
  >= 0  then 1 else 0 end as bad_indictors_no_proxy,
  
-case when (is_proxy + ip_address_far + unverified_phone + phone_country_mismatch + bin_mismatch  ) > 0 then 1 else 0 end proxy_far_address
+case when (is_proxy + ip_address_far + unverified_phone + phone_country_mismatch + bin_mismatch + linked_to_another_user) > 2 then 1 else 0 end proxy_far_address,
+case when (is_proxy + ip_address_far + unverified_phone + phone_country_mismatch + bin_mismatch + linked_to_another_user) > 0 then 1 else 0 end proxy_far_address_weak
 -- sum(low_mm_riskscore)as low_mm_riskscore, 
 -- sum(high_mm_riskscore) as high_mm_riskscore,
 -- sum(low_num_all) as low_num_all,
@@ -394,18 +418,18 @@ select label, decision, reason,
 --bad vars
 case when (sr.variables#>> '{Analytic,mm_riskscore}') !='no_data' and (sr.variables#>> '{Analytic,mm_riskscore}')::float < 0.5 then 1 else 0 end as low_mm_riskscore,
 case when (sr.variables#>> '{Analytic,mm_riskscore}') !='no_data' and (sr.variables#>> '{Analytic,mm_riskscore}')::float >  70 then 1 else 0 end as high_mm_riskscore,
-case when (sr.variables#>> '{Analytic,num_all}') !='no_data' and (sr.variables#>> '{Analytic,num_all}')::float < 0.5 then 1 else 0 end as low_num_all,
+case when (sr.variables#>> '{Analytic,num_all}') !='no_data' and (sr.variables#>> '{Analytic,num_all}')::float < 0.2 then 1 else 0 end as low_num_all,
 case when (sr.variables#>> '{Analytic,num_all}') !='no_data' and (sr.variables#>> '{Analytic,num_all}')::float > 0.8 then 1 else 0 end as high_num_all,
 case when (sr.variables#>> '{Analytic,emailage_bad_reason}') ='true' then 1 else 0 end as emailage_bad_reason,
 case when (sr.variables#>> '{Analytic,ip_address_far}') ='true' then 1 else 0 end as ip_address_far,
 
 
-case when (sr.variables#>> '{Analytic,linked_to_another_user}') ='true' then 1 else 0 end as linked_to_another_user,
-case when (sr.variables#>> '{Analytic,cookie_num_users}')::int > 3 then 1 else 0 end as linked_by_cookie,
-case when (sr.variables#>> '{Analytic,btc_address_num_users}')::int > 2  then 1 else 0 end as linked_by_btc,
-case when (sr.variables#>> '{Analytic,cc_num_users}')::int > 3 then 1 else 0 end as linked_by_cc,
+case when (sr.variables#>> '{Analytic,linked_to_another_user_2}') ='true' then 1 else 0 end as linked_to_another_user,
+case when (sr.variables#>> '{Analytic,cookie_num_users}')::int > 2 then 1 else 0 end as linked_by_cookie,
+case when (sr.variables#>> '{Analytic,btc_address_num_users}')::int > 1  then 1 else 0 end as linked_by_btc,
+case when (sr.variables#>> '{Analytic,cc_num_users}')::int > 2 then 1 else 0 end as linked_by_cc,
 case when (sr.variables#>> '{Analytic,ip_num_users}')::int > 2 then 1 else 0 end as linked_by_ip,
-case when (sr.variables#>> '{Analytic,max_num_phone_users}')::int > 2 then 1 else 0 end as linked_by_phone,
+case when (sr.variables#>> '{Analytic,max_num_phone_users}')::int > 1 then 1 else 0 end as linked_by_phone,
 
 case when (sr.variables#>> '{Analytic,user_num_addresses}')::int > 1 then 1 else 0 end as many_addresses,
 case when (sr.variables#>> '{Analytic,num_names_on_cards}')::int > 2 then 1 else 0 end as many_names_on_card,
@@ -416,6 +440,8 @@ case when (sr.variables#>> '{Analytic,phone_country_match}') ='false' then 1 els
 case when (sr.variables#>> '{Analytic,verified_phone}') ='false' then 1 else 0 end as unverified_phone,
 case when (sr.variables#>> '{Analytic,name_on_card_match}') ='no_match' then 1 else 0 end as name_on_card_mismatch,
 case when (sr.variables#>> '{Analytic,mm_binmatch}')  = 'Yes' then 0 else 1 end as bin_mismatch,
+case when (sr.variables#>> '{Analytic,card_type}')  = 'carder' then 1 else 0 end as carder,
+case when (sr.variables#>> '{Analytic,issuer_alert}')  = 'true' then 1 else 0 end as issuer_alert,
 case when (sr.variables#>> '{Analytic,num_bin_countries}')::int> 1 then 1 else 0 end as many_bins,
 case when (sr.variables#>> '{Analytic,num_user_phones}')::int > 4 then 1 else 0 end as many_phones,
 
@@ -434,9 +460,11 @@ case when (sr.variables#>> '{Analytic,num_ccs_with_avs_match_to_current_address}
 case when (sr.variables#>> '{Analytic,was_auth_done_with_threeds}') = 'true'  then 1 else 0 end as was_auth_done_with_threeds,
 case when (sr.variables#>> '{Analytic,is_social_media}') = 'true'  then 1 else 0 end as is_social_media,
 case when (sr.variables#>> '{Analytic,email_name_match_score}')::float > 0.7 then 1 else 0 end as email_name_match,
-case when (sr.variables#>> '{Analytic,partner_type}') = 'mining_pool' then 1 else 0 end as mining_payment
-
-
+case when (sr.variables#>> '{Analytic,partner_type}') = 'mining_pool' then 1 else 0 end as mining_payment,
+case when (sr.variables#>> '{Analytic,verified_user}') = 'true' then 1 else 0 end as verified_user,
+case when (sr.variables#>> '{Analytic,decent_user_nothing_bad}') = 'true' then 1 else 0 end as decent_user_nothing_bad,
+case when (sr.variables#>> '{Analytic,liberal_risk_mode_user_last_non_auto_decision_approved}') = 'true' then 1 else 0 end as recently_approved,
+case when  reason = 'manual_linked_to_manual_or_declined_user_risk_status' then 1 else 0 end as linked_to_user_risk_status
 
 
 
@@ -461,24 +489,41 @@ and reason not in ('returning user last payment refund', 'manual user risk statu
 
 )a  )b 
 where 
-(name_on_card_mismatch = 0 and bad_linking = 0) and 
-(
-would_have_been_approved_by_simplex = 0
-and
-  external_social_data = 0
-and
-no_bad_external_indicators = 0
-and
-old_email = 0)
-and mining_payment = 0
-and was_auth_done_with_threeds = 0 
-and email_name_match = 0 
--- -- and 
--- --  bad_indictors_no_proxy = 0
--- --  or (
+-- -- -- -- -- (carder + issuer_alert)>0
+-- -- -- -- -- 
+-- -- -- -- -- linked_to_user_risk_status = 1
+-- -- -- -- -- many_names_on_card = 0
+(name_on_card_mismatch +
+-- -- -- +
+bad_linking +
+proxy_far_address) = 0
+-- -- -- -- -- -- --  
 and 
- proxy_far_address = 0
--- and many_cards_and_info_change = 1
+(
+avs_match_with_few_cards +
+
+would_have_been_approved_by_simplex +
+
+  external_social_data +
+
+no_bad_external_indicators +
+
+low_num_all +
+-- (verified_user + recently_approved)
+
+old_email) = 0
+and mining_payment = 0
+and was_auth_done_with_threeds = 0
+and email_name_match = 0 
+-- -- -- -- -- -- -- -- and 
+-- -- -- -- -- -- -- --  bad_indictors_no_proxy = 0
+-- -- -- -- -- -- -- --  or (
+-- -- -- -- -- -- -- and 
+-- -- -- -- -- -- --  proxy_far_address = 0
+ and proxy_far_address_weak = 0
+-- -- -- and many_cards_and_info_change = 1
  group by 1 order by  1, 2   desc) c
 
  ;
+ 
+
