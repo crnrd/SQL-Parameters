@@ -1,0 +1,82 @@
+wbVarDef pid=$[?pid];
+wbvardef vseu = 0; wbvardef vpeu = 0;
+wbvardef vseu  =@ 'select distinct simplex_end_user_id from payments where id = ($[pid])';
+wbvardef vpeu  =@ 'select distinct partner_end_user_id from payments where id = ($[pid])';
+;
+--@WbResult 1. abstract
+Select first_name, last_name, email, phone, address, city, state, country, user_risk_status, has_support_ticket
+from simplex_end_users seu
+where id in ($[vseu])
+;
+--@WbResult 2. Payments
+select py.id, nm.name partner, py.order_id, py.credit_card, py.status, py.created_at, py.updated_at, total_amount, py.currency, u.email, py.handling_user_id, py.first_name, py.last_name, py.first_name_card, py.last_name_card, * 
+from payments py 
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+left join users u on u.id = py.handling_user_id
+where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])
+order by py.id
+;
+--@WbResult 2.1 Comments
+select cm.created_at, cm.payment_id, u.email, cm.text_data 
+from comments cm
+left join users u on u.id = cm.author_id
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu]))
+order by cm.id
+;
+--@WbResult 3. Proc_Reuquests
+Select id, payment_id, updated_at, tx_type, status, pr.raw_response ->> 'acquirerresponsemessage' Reason, masked_credit_card, pr.raw_response ->> 'expirydate' EXP_date, pr.raw_response ->> 'transactionreference' TXn, pr.init_response_data ->> 'transaction_id' ecp_TXn, pr.raw_response ->> 'issuer' bank, pr.raw_response ->> 'enrolled' SE, pr.raw_response ->> 'status' SS, pr.raw_response ->> 'securityresponsepostcode' AVSPt,  pr.raw_response ->> 'securityresponseaddress' AVSA, pr.raw_response, *
+from proc_requests pr
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu]))
+order by id
+;
+--@WbResult 4. Payment events
+select id, payment_id, partner_id, name, created_at, consumed_at, pel.payment ->> 'user_digital_amount' BTC_sent, payment, pel.payment_id, pel.payment->>'user_id' user_id, pel.payment->>'email_hash' Email_hash, event_id
+from payment_events_log pel
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu]))
+order by id
+;
+--@WbResult 5. User Actions
+select id, payment_id, inserted_at, event_type, response_data, request_data, *
+from user_browser_events
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu]))
+order by id
+;
+--@WbResult 6.1 Decisions
+select * 
+from decisions 
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])) order by id
+;
+--@WbResult 6.2 Manual Decisions
+select * 
+from decisions 
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])) and application_name ilike 'manual'
+order by id
+;
+--@WbResult 6.3 Verification Requests
+Select *
+from verification_requests
+where payment_id in (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu]))
+order by id
+;
+--@WbResult 7. Chargebacks, Retrival Requests, and Fraud Warnings 
+select py.created_at, py.id, nm.name, py.status, cbks.reason_code CBK_reason_code, cbks.raw_data ->> 'reason_description' CBK_reason,cbks.is_simplex_liable, CBKs.status, rrqs.reason_code rrq_reason_code, frws.processor, frws.card_scheme, frws.fraud_type_raw
+from payments py
+Left join
+    (select * from chargebacks cbk) cbks on cbks.payment_id = py.id
+Left join 
+    (select * from retrieval_requests rrq) rrqs on rrqs.payment_id = py.id
+left join
+    (select * from fraud_warnings frw) frws on frws.payment_id = py.id
+left join 
+    (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+where py.simplex_end_user_id = ($[vseu]) or py.partner_end_user_id = ($[vpeu])
+order by py.id
+;
+--@WbResult A. Analyst Codes
+select * from users order by id
+;
+--@WbResult B. Status Meaning 
+select * from status_meaning order by code
+;
+--@WbResult C. Partners
+select * from partners order by id
