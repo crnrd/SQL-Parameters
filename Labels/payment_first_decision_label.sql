@@ -3,7 +3,7 @@
 -- create  materialized view ma_view_payment_first_decision_label  (payment_id, payment_label) as 
 with 
 p_ids as (select id from payments where status in (2, 13, 15,  11, 16, 22) and 
-id < 820000
+id < 810000
 order by 1
 ), 
 ver_req as (select distinct on (payment_id) payment_id, inserted_at, 
@@ -40,8 +40,6 @@ where pd.payment_id in (select id from p_ids))labels
 ;
 commit;
 
-select count(*) from ma_view_payment_first_decision_label;
-select count(*) from ma_view_payment_last_decision_label_2 ;
-select count(*) from mv_payment_last_state_label_2 ;
+
 
 
