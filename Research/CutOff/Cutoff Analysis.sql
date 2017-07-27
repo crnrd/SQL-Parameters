@@ -42,14 +42,14 @@ case when coalesce((cd.variables#>> '{Analytic, variables, Analytic,recent_phone
 (cd.variables#>> '{Analytic, variables, Analytic,buyer_recent_phone_name_match}')) = 'true'  then 1 else 0 end as recent_phone_name_match,
 case when (cd.variables#>> '{Analytic, variables, Analytic,decent_email_without_alerts}') ='true' and 
 coalesce((cd.variables#>> '{Analytic, variables, Analytic,user_emailage}'),(cd.variables#>> '{Analytic, variables, Analytic,buyer_emailage}')) != 'no_data' and 
-coalesce((cd.variables#>> '{Analytic, variables, Analytic,user_emailage}'),(cd.variables#>> '{Analytic, variables, Analytic,buyer_emailage}'))::int > 365 then 1 else 0 end as decent_email_without_alerts,
+coalesce((cd.variables#>> '{Analytic, variables, Analytic,user_emailage}'),(cd.variables#>> '{Analytic, variables, Analytic,buyer_emailage}'))::int > 180 then 1 else 0 end as decent_email_without_alerts,
 case when (cd.variables#>> '{Analytic, variables, Analytic,variable_for_random_approve_num_all_low_threshold}') ='true' then 1 else 0 end as num_all,
 case when (cd.variables#>> '{Analytic, rules , approve_threeds_liable,decision}') ='approved' then 1 else 0 end as approve_threeds_liable,
-case when (cd.variables#>> '{Analytic, rules, liberal_risk_mode_approve_mining_user, decision}') ='approved' then 1 else 0 end as liberal_risk_mode_approve_mining_user
-case when (cd.variables#>> '{Analytic, rules , approve_returning_weak_approve_under_limit,decision}') ='approved' then 1 else 0 end as approve_returning_weak_approve_under_limit,
-case when (cd.variables#>> '{Analytic, rules, approve_returning_strong_approve_under_limit, decision}') ='approved' then 1 else 0 end as approve_returning_strong_approve_under_limit,
-case when (cd.variables#>> '{Analytic, rules, approve_verified_card_below_velocity_limits_threeds, decision}') ='approved' then 1 else 0 end as approve_verified_card_below_velocity_limits_threeds
-
+case when (cd.variables#>> '{Analytic, rules, liberal_risk_mode_approve_mining_user, decision}') ='approved' then 1 else 0 end as liberal_risk_mode_approve_mining_user, 
+-- case when (cd.variables#>> '{Analytic, rules , approve_returning_weak_approve_under_limit,decision}') ='approved' then 1 else 0 end as approve_returning_weak_approve_under_limit,
+-- case when (cd.variables#>> '{Analytic, rules, approve_returning_strong_approve_under_limit, decision}') ='approved' then 1 else 0 end as approve_returning_strong_approve_under_limit,
+-- case when (cd.variables#>> '{Analytic, rules, approve_verified_card_below_velocity_limits_threeds, decision}') ='approved' then 1 else 0 end as approve_verified_card_below_velocity_limits_threeds, 
+case when (cd.variables#>> '{Analytic, rules, liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit, decision}') ='approved' then 1 else 0 end as liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit
 from mv_new_all_labels al
 left join ma_view_payment_decisions pd on pd.payment_id = al.payment_id
 left join payments p on p.id = al.payment_id
@@ -62,23 +62,23 @@ al.payment_id between 410000 and 810000
 and (d.variables#>> '{Analytic, variables, Analytic, user_previously_reviewed_by_analyst}') = 'false'
 -- and (d.variables#>> '{Analytic, variables, Analytic, risk_mode}') = 'liberal'
 -- and pd.post_auth_decision = 'approved' and first_decision = 'auto_approved' 
-and pd.cutoff_decision = 'declined' and first_decision = 'cutoff_declined' 
--- and pd.cutoff_decision = 'approved' and first_decision = 'cutoff_approved' 
+-- and pd.cutoff_decision = 'declined' and first_decision = 'cutoff_declined' 
+and pd.cutoff_decision = 'approved' and first_decision = 'cutoff_approved' 
 and user_label not in ('other')
 )a
 
--- where 
--- (
--- good_user_three_ds_avs_match 
--- + id_match 
--- + verified_phone_match 
--- + phone_bin_ip_location_match
+where 
+(
+good_user_three_ds_avs_match 
++ id_match 
++ verified_phone_match 
++ phone_bin_ip_location_match
 -- + decent_email_without_alerts
 -- -- + user_with_social_media_or_phone_name_match
 -- -- + liberal_risk_mode_approve_mining_user
 -- + is_social_media
 -- 
--- ) > 0
+) = 0
 
 -- or (low_mm_riskscore = 1 and recent_phone_name_match = 1)
 )
@@ -118,7 +118,8 @@ sum(many_ccs) as many_ccs,
 sum(recent_phone_name_match) as recent_phone_name_match, 
 sum(num_all) as num_all ,
 sum(approve_threeds_liable) as approve_threeds_liable ,
-sum(liberal_risk_mode_approve_mining_user) as liberal_risk_mode_approve_mining_user
+sum(liberal_risk_mode_approve_mining_user) as liberal_risk_mode_approve_mining_user, 
+sum(liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit) as liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit
 -- sum(approve_returning_weak_approve_under_limit) as approve_returning_weak_approve_under_limit ,
 -- sum(approve_returning_strong_approve_under_limit) as approve_returning_strong_approve_under_limit ,
 -- sum(approve_verified_card_below_velocity_limits_threeds) as approve_verified_card_below_velocity_limits_threeds
@@ -157,12 +158,15 @@ sum(num_payments) over () as total_payments,
 -- 100*verified_phone_match/sum(verified_phone_match) over () as perc_verified_phone_match,
 -- sum(phone_bin_ip_location_match) over () as phone_bin_ip_location_match,
 -- 100*phone_bin_ip_location_match/sum(phone_bin_ip_location_match) over () as perc_phone_bin_ip_location_match,
--- decent_email_without_alerts, 
--- sum(decent_email_without_alerts) over () as total_decent_email_without_alerts,
--- 100*decent_email_without_alerts/sum(decent_email_without_alerts) over () as perc_decent_email_without_alerts
-user_with_social_media_or_phone_name_match, 
-sum(user_with_social_media_or_phone_name_match) over () as total_user_with_social_media_or_phone_name_match,
-100*user_with_social_media_or_phone_name_match/sum(user_with_social_media_or_phone_name_match) over () as perc_user_with_social_media_or_phone_name_match
+decent_email_without_alerts, 
+sum(decent_email_without_alerts) over () as total_decent_email_without_alerts,
+100*decent_email_without_alerts/sum(decent_email_without_alerts) over () as perc_decent_email_without_alerts
+-- liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit, 
+-- sum(liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit) over () as total_liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit
+-- 100*liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit/sum(liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit) over () as perc_liberal_risk_mode_approve_verified_user_with_not_many_ccs_under_limit
+-- user_with_social_media_or_phone_name_match, 
+-- sum(user_with_social_media_or_phone_name_match) over () as total_user_with_social_media_or_phone_name_match,
+-- 100*user_with_social_media_or_phone_name_match/sum(user_with_social_media_or_phone_name_match) over () as perc_user_with_social_media_or_phone_name_match
 -- is_social_media, 
 -- sum(is_social_media) over () as total_is_social_media,
 -- 100*is_social_media/sum(is_social_media) over () as perc_is_social_media
