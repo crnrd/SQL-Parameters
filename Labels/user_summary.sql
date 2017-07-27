@@ -11,17 +11,18 @@ service_cb_or_refund_payments,
 old_approved_payments, 
 approved_payments) 
 as 
-
+-- ;
 with 
 -- Define the payment_ids you want to go through
 p_ids  as (select id, email from payments where status in (2, 13, 15,  11, 16, 22)
-and  id < 810000 
-
+-- and  id < 810000 
+-- order by 1 desc limit 50
 ), 
 --Extracts the email from them and then all their payments. The PIT is defined by the max payment_id
 email_p_ids as (select id, created_at, email from payments where email in (select email from p_ids) 
 and status in (2, 13, 15,  11, 16, 22)
- and id < 810000),
+--  and id < 810000
+ ),
 
 -- aggregates all the payment label. 
 all_labels as 
@@ -62,7 +63,6 @@ left join (select payment_id, last_decision from all_labels)
  al on al.payment_id = email_p_ids.id
 order by email, created_at desc ) decisions
 )
-
 
 select distinct user_payment_stats.email, 
 uld.last_decision as user_last_decision, 

@@ -3,12 +3,12 @@ as
 
 
 with p_ids as (select id, status from payments where status in (2, 13, 15,  11, 16, 22) 
-
+-- limit 500
 ),
 cb as (select payment_id,
-case when reason_code in (4837, 4870,  83, 75) then 'Fraud'
+case when reason_code in (4837, 4870,  83, 75) then 'Fraud' --Update reason codes
 else 'Service' end as cb_type 
-from chargebacks where payment_id in (select id from p_ids)), 
+from chargebacks where status = '1st_chargeback' and payment_id in (select id from p_ids)), 
 
 -- rrq as (select payment_id, 
 -- case when reason_code in (6341, 6321,33) then 'Fraud' 

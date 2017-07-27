@@ -6,15 +6,15 @@ as
 -- commit;
 with 
 p_ids  as (select id, email from payments where status in (2, 13, 15,  11, 16, 22)
-and  id < 810000 
+-- and  id < 810000 
 )
 
 select email,
 case 
 when fraud_payments > 0 then 'fraudalent_user'
+when service_cb_or_refund_payments > 0 then 'service_cb_or_refunded_user'
 when user_risk_status = 'decline' then 'urs_decline' 
 when user_risk_status = 'manual' then 'urs_manual' 
-when service_cb_or_refund_payments > 0 then 'service_cb_or_refunded_user'
 when user_last_manual_decision = 'declined_fraud' then 'bad_user' -- should divide here into types
 when user_last_manual_decision = 'declined_potential_fraud' and old_approved_payments > 1 then 'declined_but_approved_before_without_cb'
 when old_approved_payments > 0 then 'good_user'
