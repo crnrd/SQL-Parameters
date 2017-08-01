@@ -1,4 +1,14 @@
 -- FAILED PAYMENTS OF A CERTAIN RUN_ID
+INSERT INTO simulator_groups
+(
+  description
+)
+VALUES
+(
+  '$[?description]'
+);
+
+WbVarDef group_id=@"SELECT MAX(id) FROM simulator_groups";
 
 INSERT INTO simulator_parameters
 (
@@ -7,7 +17,7 @@ INSERT INTO simulator_parameters
   time_point,
   risk_mode
 )
-SELECT (SELECT COALESCE(MAX(group_id) +1,1) FROM simulator_parameters),
+SELECT ($[group_id],
        p.payment_id,
        p.time_point,
        'conservative'
@@ -20,4 +30,4 @@ WHERE p.id IN (SELECT parameter_id
 COMMIT;
 
 SELECT MAX(group_id)
-FROM simulator_parameters;
+FROM simulator_groups;
