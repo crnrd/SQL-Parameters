@@ -1,5 +1,16 @@
 -- CONSERVATIVE GROUP FOR COMPARISON WITH LIBERAL CHAMPION - UPDATES FROM LIVE TABLES!
 
+INSERT INTO simulator_groups
+(
+  description
+)
+VALUES
+(
+  '$[?description]'
+);
+
+WbVarDef group_id=@"SELECT MAX(id) FROM simulator_groups";
+
 WITH p AS
 (
   SELECT id,
@@ -18,7 +29,7 @@ WITH p AS
   time_point,
   risk_mode
 )
-SELECT (SELECT COALESCE(MAX(group_id) +1,1) FROM simulator_parameters),payment_id,
+SELECT ($[group_id],payment_id,
        pit,
        'conservative'
 FROM (SELECT DISTINCT p.id payment_id,
