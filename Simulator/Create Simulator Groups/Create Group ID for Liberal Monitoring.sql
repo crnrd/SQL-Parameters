@@ -1,11 +1,23 @@
 -- create group
+INSERT INTO simulator_groups
+(
+  description
+)
+VALUES
+(
+  '$[?description]'
+);
+
+WbVarDef group_id=@"SELECT MAX(id) FROM simulator_groups";
+
+
 INSERT INTO simulator_parameters
 ( group_id,
   payment_id,
   time_point,
   risk_mode
 )
-SELECT (SELECT COALESCE(MAX(group_id) +1,1) FROM simulator_parameters),
+SELECT ($[group_id],
        payment_id,
        pit,
        'conservative'
@@ -40,4 +52,4 @@ and d.variables#>>'{Analytic,variables,Analytic,risk_mode}' = 'liberal'
 COMMIT;
 
 -- check your group
-select max(group_id) from simulator_parameters;  
+select max(group_id) from simulator_groups;  
