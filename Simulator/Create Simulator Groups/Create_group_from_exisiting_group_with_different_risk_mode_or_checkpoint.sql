@@ -17,13 +17,12 @@ INSERT INTO simulator_parameters
   risk_mode, 
   checkpoint_name
 )
-SELECT ($[group_id],
-       payment_id,  time_point, 'conservative' as risk_mode, 'post-auth-offline' as checkpoint_name
-FROM (SELECT payment_id, time_point from simulator_parameters where group_id = 1163)a limit 10;
+SELECT $[group_id] ,
+       payment_id,  time_point, 'conservative' as risk_mode, 'pending-payment-manual' as checkpoint_name
+FROM (SELECT payment_id, time_point from simulator_parameters where group_id = 1195)a limit 3000;
 
 COMMIT;
 
 
 -- checking your group
-select   max(group_id) from simulator_groups;     
-
+select   max(id) from simulator_groups;     

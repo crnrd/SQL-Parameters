@@ -126,7 +126,7 @@ SELECT Challenger.payment_id,
 							 ) z) Champion
                ON (Challenger.payment_id = Champion.payment_id
 									AND Challenger.key = Champion.key)
-WHERE (lower (challenger_value) !=lower (champion_value))
+WHERE (lower (challenger_value) !=lower (champion_value)) and
 Challenger.key not in ('variable_for_random_approve', 
 'variable_for_random_approve_num_all_high_threshold',
 'variable_for_approve_payment_model_score_low_threshold',
@@ -136,5 +136,3 @@ Challenger.key not in ('variable_for_random_approve',
 group by 1, 2, 3
 order by 1, 2, 3;
 
-select * from decisions where analytic_code_version = '1.3.11.1';
-select * from paym
