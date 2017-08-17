@@ -1,6 +1,6 @@
 
 commit;
-create materialized view mv_new_user_label (email, user_label)
+create materialized view mv_user_label (email, user_label)
 as 
 -- drop materialized view mv_new_user_label cascade;
 -- commit;

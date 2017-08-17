@@ -1,6 +1,6 @@
 -- select distinct payment_id, count(*) from 
 commit;
-create materialized view mv_new_all_labels 
+create materialized view mv_all_labels 
 (payment_id, 
 first_decision, 
 last_decision,
@@ -18,11 +18,11 @@ pls. payment_label as last_state,
 ul.user_label as user_label
 
 
-from ma_view_payment_first_decision_label pfd 
-left join ma_view_payment_last_decision_label pld on pld.payment_id = pfd.payment_id 
+from mv_payment_first_decision_label pfd 
+left join mv_payment_last_decision_label pld on pld.payment_id = pfd.payment_id 
 left join mv_payment_last_state_label pls on pls.payment_id = pfd.payment_id
 left join payments p on p.id = pfd.payment_id
-left join mv_new_user_label ul on ul.email = p.email
+left join mv_user_label ul on ul.email = p.email
 ) all_labels;
 -- group by 1 having count(*) > 2
 -- where last_decision is null or first_decision is null or last_state is null

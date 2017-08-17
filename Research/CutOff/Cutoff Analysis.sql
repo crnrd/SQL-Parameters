@@ -86,8 +86,8 @@ good_user_three_ds_avs_match
 sums_per_payment as (
 select 
 distinct 
--- last_state 
-final_user_label
+last_state 
+-- final_user_label
 as label,
 
 -- first_decision, 
