@@ -15,17 +15,17 @@ INSERT INTO simulator_parameters
   time_point,
   risk_mode
 )
-SELECT ($[group_id],
+SELECT $[group_id],
         p.payment_id,
         p.time_point,
-        'liberal'
+        'conservative'
 FROM simulator_parameters p
 WHERE p.id IN (SELECT id
                FROM simulator_parameters
-               where group_id = 949);
+               where group_id = 1195 limit 100);
 
 COMMIT;
 
 SELECT
- MAX(group_id)
+ MAX(id)
 FROM simulator_groups;
