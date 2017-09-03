@@ -5,7 +5,7 @@ WbVarDef pid='$[?id]';
 
 --@WbResult payment_decisions
 SELECT *
-FROM ma_view_payment_decisions
+FROM mv_payment_decisions
 WHERE (payment_id IN ($[pid]))
 ORDER BY 1 DESC;
 
@@ -27,13 +27,13 @@ ORDER BY 1 DESC;
 
 --@WbResult first_decision
 SELECT *
-FROM ma_view_payment_first_decision_label
+FROM mv_payment_first_decision_label
 WHERE (payment_id IN ($[pid]))
 ORDER BY 1 DESC;
 
 --@WbResult last_decision
 SELECT *
-FROM ma_view_payment_last_decision_label 
+FROM mv_payment_last_decision_label 
 WHERE (payment_id IN ($[pid]))
 ORDER BY 1 DESC;
 
@@ -48,8 +48,16 @@ ORDER BY 1 DESC;
 
 with p as (select id, email from payments where id in ($[pid]))
 SELECT *
-FROM mv_new_user_label
+FROM mv_user_label
 WHERE (email IN (select email from p))
 ORDER BY 1 DESC;
 
+--@WbResult all_labels
 
+SELECT *
+FROM mv_all_labels
+WHERE (payment_id IN ($[pid]))
+ORDER BY 1 DESC;;
+
+
+select * from mv_all_labels where r_payment_id=1093806;

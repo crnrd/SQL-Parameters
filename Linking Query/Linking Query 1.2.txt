@@ -1,0 +1,113 @@
+WbVarDef pid = $[?pid];
+wbvardef vseu = 0; wbvardef vpeu = 0;
+wbvardef vseu  =@ 'select distinct simplex_end_user_id from payments where id = ($[pid])';
+wbvardef vpeu  =@ 'select distinct partner_end_user_id from payments where id = ($[pid])';
+;
+--@WbResult Basic details on current user
+Select first_name, last_name, email, phone, address, city, state, country, user_risk_status, has_support_ticket
+from simplex_end_users seu
+where id in ($[vseu])
+;
+--@WbResult Credit Card
+select  py.created_at, py.validation_request_body->>'email' email, py.id payment_id, py.status, nm.name partner, pr.masked_credit_card, pr.request_data ->> 'expiration_date' EXP_date_ecp, pr.raw_response ->> 'expirydate' EXP_date_ST,
+        pr.request_data->> 'first_name_card' card_first_name, pr.request_data->> 'last_name_card' card_last_name,  py.validation_request_body->>'first_name' first_name, py.validation_request_body->>'last_name' last_name, cbks.cbktype, rrqs.rrqcode, frws.frwt
+from proc_requests pr
+left join payments py on py.id = pr.payment_id
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+Left join
+    (select distinct cbk.payment_id cbkid, cbkt.chargeback_type cbktype from chargebacks cbk
+     left join chargeback_types cbkt on cbkt.reason_code = cbk.reason_code) cbks on cbks.cbkid = pr.payment_id
+Left join 
+    (select rrq.payment_id rrqid, rrq.reason_code rrqcode from retrieval_requests rrq) rrqs on rrqs.rrqid = pr.payment_id
+left join
+     (select frw.payment_id frwid, frw.fraud_type_raw frwt from fraud_warnings frw) frws on frws.frwid = pr.payment_id
+where masked_credit_card in 
+  (select distinct masked_credit_card from proc_requests where payment_id in 
+    (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])))
+order by pr.payment_id desc
+;
+--@WbResult BTC address
+select  py.created_at, py.validation_request_body->>'email' email, py.id payment_id, py.status, nm.name partner,
+        py.simplex_end_user_id, py.partner_end_user_id, py.validation_request_body->>'first_name' first_name, py.validation_request_body->>'last_name' last_name,
+        py.btc_address, cbks.cbktype, rrqs.rrqcode, frws.frwt
+from payments py
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+Left join
+    (select distinct cbk.payment_id cbkid, cbkt.chargeback_type cbktype from chargebacks cbk
+     left join chargeback_types cbkt on cbkt.reason_code = cbk.reason_code) cbks on cbks.cbkid = py.id
+Left join 
+    (select rrq.payment_id rrqid, rrq.reason_code rrqcode from retrieval_requests rrq) rrqs on rrqs.rrqid = py.id
+left join
+     (select frw.payment_id frwid, frw.fraud_type_raw frwt from fraud_warnings frw) frws on frws.frwid = py.id
+where btc_address in (select btc_address from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])) 
+order by py.id desc
+;
+--@WbResult Cookie
+select  py.created_at, py.validation_request_body->>'email' email, py.id payment_id, py.status, nm.name partner,
+        py.simplex_end_user_id, py.partner_end_user_id, py.validation_request_body->>'first_name' first_name, py.validation_request_body->>'last_name' last_name,
+        py.simplex_login->>'uaid' cookie, cbks.cbktype, rrqs.rrqcode, frws.frwt
+from payments py
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+Left join
+    (select distinct cbk.payment_id cbkid, cbkt.chargeback_type cbktype from chargebacks cbk
+     left join chargeback_types cbkt on cbkt.reason_code = cbk.reason_code) cbks on cbks.cbkid = py.id
+Left join 
+    (select rrq.payment_id rrqid, rrq.reason_code rrqcode from retrieval_requests rrq) rrqs on rrqs.rrqid = py.id
+left join
+     (select frw.payment_id frwid, frw.fraud_type_raw frwt from fraud_warnings frw) frws on frws.frwid = py.id
+where simplex_login->>'uaid' in (select simplex_login->>'uaid' from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])) 
+order by py.id desc
+;
+--@WbResult Address
+select  py.created_at, py.validation_request_body->>'email' email, py.id payment_id, py.status, nm.name partner,
+        py.simplex_end_user_id, py.partner_end_user_id, py.validation_request_body->>'first_name' first_name, py.validation_request_body->>'last_name' last_name,
+        py.address1, cbks.cbktype, rrqs.rrqcode, frws.frwt
+from payments py
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+Left join
+    (select distinct cbk.payment_id cbkid, cbkt.chargeback_type cbktype from chargebacks cbk
+     left join chargeback_types cbkt on cbkt.reason_code = cbk.reason_code) cbks on cbks.cbkid = py.id
+Left join 
+    (select rrq.payment_id rrqid, rrq.reason_code rrqcode from retrieval_requests rrq) rrqs on rrqs.rrqid = py.id
+left join
+     (select frw.payment_id frwid, frw.fraud_type_raw frwt from fraud_warnings frw) frws on frws.frwid = py.id
+where address1 in (select address1 from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])) 
+order by py.id desc
+;
+--@WbResult IP
+select py.created_at, py.validation_request_body->>'email' email, py.id payment_id, py.status, nm.name partner,
+        py.simplex_end_user_id, py.partner_end_user_id, py.validation_request_body->>'first_name' first_name, py.validation_request_body->>'last_name' last_name,
+        py.simplex_login->> 'ip' ip, enm.IpType, enm.proxyScore, enm.City , enm.CMatch, cbks.cbktype, rrqs.rrqcode, frws.frwt
+from payments py
+left join (select enm.enmip, enm.IpType, enm.proxyScore, enm.City, enm.Cmatch, enm.inserted_at
+from (select mxenm.request_data ->> 'i' enmip, mxenm.data ->> 'ip_userType' IpType, mxenm.data ->> 'proxyScore' proxyScore, mxenm.data ->> 'ip_city' City , mxenm.data ->> 'countryMatch' CMatch, inserted_at, ROW_NUMBER() OVER (PARTITION BY request_data ->> 'i'  ORDER BY inserted_at DESC) rn
+ FROM enrich_maxmind mxenm) enm where rn = 1) enm on py.simplex_login->> 'ip' = enm.enmip
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+Left join
+    (select distinct cbk.payment_id cbkid, cbkt.chargeback_type cbktype from chargebacks cbk
+     left join chargeback_types cbkt on cbkt.reason_code = cbk.reason_code) cbks on cbks.cbkid = py.id
+Left join 
+    (select rrq.payment_id rrqid, rrq.reason_code rrqcode from retrieval_requests rrq) rrqs on rrqs.rrqid = py.id
+left join
+     (select frw.payment_id frwid, frw.fraud_type_raw frwt from fraud_warnings frw) frws on frws.frwid = py.id
+where simplex_login->> 'ip' in (select simplex_login->> 'ip' from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])) 
+order by py.id desc
+;
+--@WbResult Phones
+select py.created_at, py.validation_request_body->>'email' email, py.id payment_id, py.status, nm.name partner,
+       py.simplex_end_user_id, py.partner_end_user_id, py.validation_request_body->>'first_name' first_name, py.validation_request_body->>'last_name' last_name,
+       pv.phone, cbks.cbktype, rrqs.rrqcode, frws.frwt
+from phone_verifications pv
+left join payments py on py.id = pv.payment_id
+left join (select peu.id, p.name from partner_end_users peu left join partners p on p.id = peu.partner_id) nm on nm.id = py.partner_end_user_id
+Left join
+    (select distinct cbk.payment_id cbkid, cbkt.chargeback_type cbktype from chargebacks cbk
+     left join chargeback_types cbkt on cbkt.reason_code = cbk.reason_code) cbks on cbks.cbkid = py.id
+Left join 
+    (select rrq.payment_id rrqid, rrq.reason_code rrqcode from retrieval_requests rrq) rrqs on rrqs.rrqid = py.id
+left join
+     (select frw.payment_id frwid, frw.fraud_type_raw frwt from fraud_warnings frw) frws on frws.frwid = py.id
+where pv.phone in
+  (select phone from phone_verifications where payment_id in
+    (select id from payments where simplex_end_user_id = ($[vseu]) or partner_end_user_id = ($[vpeu])))
+order by py.id desc

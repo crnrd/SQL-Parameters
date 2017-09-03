@@ -48,3 +48,7 @@ left join p_ids on p_ids.id = al.payment_id
 ) a group by 1,2,3) b where auto_verification_type is not null;
 
 
+select * from mv_user_label where payment_id = 503565;
+
+
+

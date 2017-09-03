@@ -34,6 +34,12 @@ SELECT *
 FROM partner_end_users
 WHERE id IN (SELECT partner_end_user_id FROM payments WHERE id IN ($[pid]));
 
+-- Partner end user id
+-- @WbResult peu_log
+SELECT *
+FROM partner_end_users_log
+WHERE current_end_user_id IN (SELECT partner_end_user_id FROM payments WHERE id IN ($[pid]));
+
 -- Verification requests 
 -- @WbResult ver_req
 SELECT *
