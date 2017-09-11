@@ -1,3 +1,4 @@
+--select * from  vm_decisions_two_days limit 20;
 --use the following to update noam's materialized view of decisions for last 2 days
 --refresh MATERIALIZED VIEW vm_decisions_two_days;
 --then make sure to replace the decisions table with vm_decisions_two_days in the queries below
@@ -17,14 +18,14 @@ SELECT Challenger.payment_id,
 FROM(
       SELECT distinct on (payment_id) payment_id, variables #>> '{Analytic, decision}' decision,
  			             variables #>> '{Analytic, reason}' reason
-                  FROM decisions
+                  FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                  
 			)Challenger
       left JOIN (SELECT DISTINCT on (payment_id) payment_id,
  			             variables #>> '{Analytic, decision}' decision,
  			             ltrim (variables #>> '{Analytic, reason}') reason
-                   FROM decisions
+                   FROM vm_decisions_two_days
                          WHERE application_name = 'Bender_Auto_Decide'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')                                                                  
                   ) Champion
@@ -46,14 +47,14 @@ SELECT Challenger.payment_id,
 FROM(
       SELECT distinct on (payment_id) payment_id, variables #>> '{Analytic, decision}' decision,
  			             variables #>> '{Analytic, reason}' reason
-                  FROM decisions
+                  FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')              
 			)Challenger
       left JOIN (SELECT DISTINCT on (payment_id) payment_id,
  			             variables #>> '{Analytic, decision}' decision,
  			             ltrim (variables #>> '{Analytic, reason}') reason
-                   FROM decisions
+                   FROM vm_decisions_two_days
                          WHERE application_name = 'Bender_Auto_Decide'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')                                      
 ) Champion
@@ -76,7 +77,7 @@ SELECT Challenger.payment_id,
                    value AS Challenger_value
             FROM (SELECT payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
-                  FROM decisions
+                  FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                
 						) d) Challenger
@@ -85,7 +86,7 @@ SELECT Challenger.payment_id,
                           value AS Champion_Value
                    FROM (SELECT payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
-                         FROM decisions
+                         FROM vm_decisions_two_days
                   WHERE application_name = 'Bender_Auto_Decide'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')               
 							 ) z) Champion
@@ -115,7 +116,7 @@ SELECT Challenger.payment_id,
                    value AS Challenger_value
             FROM (SELECT payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
-                  FROM decisions
+                  FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                    
 						) d) Challenger
@@ -124,7 +125,7 @@ SELECT Challenger.payment_id,
                           value AS Champion_Value
                    FROM (SELECT payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
-                         FROM decisions
+                         FROM vm_decisions_two_days
                   WHERE application_name = 'Bender_Auto_Decide'
                   and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')              
 							 ) z) Champion
