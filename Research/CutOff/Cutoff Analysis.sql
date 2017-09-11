@@ -67,18 +67,18 @@ and pd.cutoff_decision = 'approved' and first_decision = 'cutoff_approved'
 and user_label not in ('other')
 )a
 
-where 
-(
-good_user_three_ds_avs_match 
-+ id_match 
-+ verified_phone_match 
-+ phone_bin_ip_location_match
--- + decent_email_without_alerts
--- -- + user_with_social_media_or_phone_name_match
--- -- + liberal_risk_mode_approve_mining_user
--- + is_social_media
--- 
-) = 0
+-- where 
+-- (
+-- good_user_three_ds_avs_match 
+-- + id_match 
+-- + verified_phone_match 
+-- + phone_bin_ip_location_match
+-- -- + decent_email_without_alerts
+-- -- -- + user_with_social_media_or_phone_name_match
+-- -- -- + liberal_risk_mode_approve_mining_user
+-- -- + is_social_media
+-- -- 
+-- ) = 0
 
 -- or (low_mm_riskscore = 1 and recent_phone_name_match = 1)
 )

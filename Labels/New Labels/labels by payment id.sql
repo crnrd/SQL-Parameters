@@ -60,5 +60,4 @@ WHERE (payment_id IN ($[pid]))
 ORDER BY 1 DESC;;
 
 
-
-
+select * from mv_all_labels where r_payment_id=1093806;

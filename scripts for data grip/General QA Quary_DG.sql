@@ -1,34 +1,27 @@
---use the following to update noam's materialized view of decisions for last 2 days
---refresh MATERIALIZED VIEW vm_decisions_two_days;
---then make sure to replace the decisions table with vm_decisions_two_days in the queries below
-
-WbVarDef nibbler_code_version = '$[?challanger_version]'; 
-WbVarDef champ_code_version = '$[?champion_version]';
-
 
 --@WbResult Nibbler Champ vs Champion difference - count 1
 Select decision_challenger, decision_champion, reason_challenger, reason_champion, count(*) from
 (
-SELECT Challenger.payment_id, 
+SELECT Challenger.payment_id,
 				Challenger.decision decision_challenger,
-				Champion.decision decision_champion, 
-				Challenger.reason reason_challenger, 
+				Champion.decision decision_champion,
+				Challenger.reason reason_challenger,
 				Champion.reason reason_champion
 FROM(
       SELECT distinct on (payment_id) payment_id, variables #>> '{Analytic, decision}' decision,
  			             variables #>> '{Analytic, reason}' reason
                   FROM decisions
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                  
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 			)Challenger
       left JOIN (SELECT DISTINCT on (payment_id) payment_id,
  			             variables #>> '{Analytic, decision}' decision,
  			             ltrim (variables #>> '{Analytic, reason}') reason
                    FROM decisions
                          WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')                                                                  
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
                   ) Champion
-                         
+
                ON (Challenger.payment_id = Champion.payment_id))x
 where reason_challenger != reason_champion
 
@@ -38,26 +31,26 @@ order by 1,2,3,4
 
 --@WbResult Nibbler Champ/Challenge difference in decision full results
 select * from (
-SELECT Challenger.payment_id, 
+SELECT Challenger.payment_id,
 				Challenger.decision decision_challenger,
-				Champion.decision decision_champion, 
-				Challenger.reason reason_challenger, 
+				Champion.decision decision_champion,
+				Challenger.reason reason_challenger,
 				Champion.reason reason_champion
 FROM(
       SELECT distinct on (payment_id) payment_id, variables #>> '{Analytic, decision}' decision,
  			             variables #>> '{Analytic, reason}' reason
                   FROM decisions
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')              
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 			)Challenger
       left JOIN (SELECT DISTINCT on (payment_id) payment_id,
  			             variables #>> '{Analytic, decision}' decision,
  			             ltrim (variables #>> '{Analytic, reason}') reason
                    FROM decisions
                          WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')                                      
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
 ) Champion
-                         
+
                ON (Challenger.payment_id = Champion.payment_id))x
 where reason_challenger != reason_champion
 order by reason_challenger
@@ -78,7 +71,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                   FROM decisions
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 						) d) Challenger
         LEFT JOIN (SELECT DISTINCT payment_id,
                           KEY,
@@ -87,12 +80,12 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                          FROM decisions
                   WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')               
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
 							 ) z) Champion
                ON (Challenger.payment_id = Champion.payment_id
 									AND Challenger.key = Champion.key)
-WHERE (lower (challenger_value) !=lower (champion_value)) 
-and Challenger.key not in ('variable_for_random_approve', 
+WHERE (lower (challenger_value) !=lower (champion_value))
+and Challenger.key not in ('variable_for_random_approve',
 'variable_for_random_approve_num_all_high_threshold',
 'variable_for_approve_payment_model_score_low_threshold',
 'random_value_for_control_group',
@@ -117,7 +110,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                   FROM decisions
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                    
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 						) d) Challenger
         LEFT JOIN (SELECT DISTINCT payment_id,
                           KEY,
@@ -126,12 +119,12 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                          FROM decisions
                   WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')              
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
 							 ) z) Champion
                ON (Challenger.payment_id = Champion.payment_id
 									AND Challenger.key = Champion.key)
 WHERE (lower (challenger_value) !=lower (champion_value))
-Challenger.key not in ('variable_for_random_approve', 
+Challenger.key not in ('variable_for_random_approve',
 'variable_for_random_approve_num_all_high_threshold',
 'variable_for_approve_payment_model_score_low_threshold',
 'random_value_for_control_group',
@@ -140,5 +133,3 @@ Challenger.key not in ('variable_for_random_approve',
 group by 1, 2, 3
 order by 1, 2, 3;
 
-select * from decisions where analytic_code_version = '1.3.11.1';
-select * from paym
