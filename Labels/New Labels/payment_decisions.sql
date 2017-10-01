@@ -1,8 +1,8 @@
-refresh materialized view ma_view_payment_decisions;
- 
-drop materialized view ma_view_payment_decisions cascade ;
+-- refresh materialized view ma_view_payment_decisions;
+--  
+-- drop materialized view ma_view_payment_decisions cascade ;
 
-create  materialized view ma_view_payment_decisions
+create  materialized view mv_payment_decisions
  (payment_id, 
 pre_auth_decision, 
 pre_auth_reason,  
@@ -26,7 +26,7 @@ as
 
 with 
 p_ids as (select id from payments where status in (2, 13, 15,  11, 16, 22) and 
-id < 820000
+id < (select max(payment_id) - 100 from decisions)
 order by 1 
 ),
 

@@ -1,9 +1,9 @@
 refresh materialized view mv_payment_decisions;
 refresh materialized view mv_fraud_inputs;
-refresh materialized view mv_user_summary;
 refresh materialized view mv_payment_first_decision_label;
 refresh materialized view mv_payment_last_decision_label;
 refresh materialized view mv_payment_last_state_label;
+refresh materialized view mv_user_summary;
 refresh materialized view mv_user_label;
 refresh materialized view mv_all_labels;
 commit;

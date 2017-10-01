@@ -6,7 +6,7 @@ as
 -- commit;
 with 
 p_ids  as (select id, email from payments where status in (2, 13, 15,  11, 16, 22)
--- and  id < 810000 
+and  id < (select max(payment_id) - 100 from decisions)
 )
 
 select email,
@@ -22,7 +22,8 @@ when user_last_decision in ('cancelled_manual_ver', 'cancelled_auto_ver') and ap
 when user_last_decision in ('cancelled_manual_ver', 'cancelled_auto_ver')  then 'not_approved_user_cancelled_last_payment'
 when approved_payments > 0 then 'approved_by_analyst' 
 when user_last_decision in ('auto_approved', 'cutoff_approved') then 'auto_approved'
-when user_last_decision in ('auto_declined', 'cutoff_declined') then 'auto_declined'
+when user_last_decision in ('auto_declined') then 'auto_declined'
+when user_last_decision in ('cutoff_declined') then 'cutoff_declined'
 else 'other' end as user_label
 
 

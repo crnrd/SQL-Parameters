@@ -1,11 +1,11 @@
 commit;
 -- drop materialized view ma_view_payment_last_decision_label cascade;
-create materialized view ma_view_payment_last_decision_label (payment_id, payment_label)
+create materialized view mv_payment_last_decision_label (payment_id, payment_label)
 as 
 with 
 p_ids as (select id, status from payments where status in (2, 13, 15,  11, 16, 22)
---  and 
--- id < 810000
+ and 
+id < (select max(payment_id) - 100 from decisions)
 
 ), 
 ver_req as (select distinct on (payment_id) payment_id, inserted_at, 

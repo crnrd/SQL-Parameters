@@ -15,13 +15,13 @@ as
 with 
 -- Define the payment_ids you want to go through
 p_ids  as (select id, email from payments where status in (2, 13, 15,  11, 16, 22)
--- and  id < 810000 
+and  id < (select max(payment_id) - 100 from decisions)
 -- order by 1 desc limit 50
 ), 
 --Extracts the email from them and then all their payments. The PIT is defined by the max payment_id
 email_p_ids as (select id, created_at, email from payments where email in (select email from p_ids) 
 and status in (2, 13, 15,  11, 16, 22)
---  and id < 810000
+ and id < (select max(payment_id) - 100 from decisions)
  ),
 
 -- aggregates all the payment label. 

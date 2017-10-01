@@ -1,5 +1,5 @@
 
-with p_ids as (select id, status from payments where id between 530000 and 700000 and status in (2, 11, 16, 13, 15, 22)),
+with p_ids as (select id, status from payments where (created_at between date '08-01-2017' and date '09-01-2017') and status in (2, 11, 16, 13, 15, 22)),
 
 dec as (select * from mv_payment_decisions where payment_id in (select id from p_ids)), 
 
@@ -56,9 +56,10 @@ left join (select payment_id, variables #> '{Analytic, variables, Analytic}' as 
 
 where 
 --  ver_req.ver_requesting_user = 'Manual'
-dec.post_auth_decision = 'verify' 
-and dec.post_auth_reason = 'verify_linked_strongly_to_another_user_not_verified_card_by_selfie'
-and variables ->> 'user_previously_reviewed_by_analyst' = 'false')a
+dec.post_auth_decision in  ('manual', 'verify')
+-- and dec.post_auth_reason = 'verify_linked_strongly_to_another_user_not_verified_card_by_selfie'
+-- and variables ->> 'user_previously_reviewed_by_analyst' = 'false'
+)a
 -- where  label = 'bad_user'
 -- group by 1
 ;

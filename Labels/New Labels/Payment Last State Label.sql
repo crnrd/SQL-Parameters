@@ -3,8 +3,8 @@ commit;
 create materialized view mv_payment_last_state_label (payment_id, payment_label)
 as
 with p_ids as (select id, status, created_at from payments where status in (2, 13, 15,  11, 16, 22) 
--- and 
--- id < 810000 
+and 
+id < (select max(payment_id) - 100 from decisions)
 
 )
 

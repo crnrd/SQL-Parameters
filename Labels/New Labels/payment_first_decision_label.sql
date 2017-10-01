@@ -1,10 +1,11 @@
 
 -- drop  materialized view ma_view_payment_first_decision_label cascade;
--- create  materialized view ma_view_payment_first_decision_label  (payment_id, payment_label) as 
+create  materialized view ma_view_payment_first_decision_label  (payment_id, payment_label) as 
 with 
 p_ids as (select id from payments where status in (2, 13, 15,  11, 16, 22) and 
-id < 810000
-order by 1
+id < (select max(payment_id) - 100 from decisions)
+order by 1 desc 
+-- limit 40
 ), 
 ver_req as (select distinct on (payment_id) payment_id, inserted_at, 
 case when requesting_user_id <= 0 then 'Auto' 
@@ -34,7 +35,7 @@ when cutoff_decision = 'declined' or batch_decision = 'declined' then 'cutoff_de
 else 'other' end as payment_label
 -- Cancelled manually or by EndUser are currently under 'other', should decide if need to get to this resolution
 
-from ma_view_payment_decisions pd
+from mv_payment_decisions pd
 left join ver_req on pd.payment_id = ver_req.payment_id
 where pd.payment_id in (select id from p_ids))labels
 ;

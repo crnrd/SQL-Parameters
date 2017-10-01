@@ -1,5 +1,15 @@
 
-with p_ids as (select id, status from payments where id between 530000 and 700000 and status in (2, 11, 16, 13, 15, 22)),
+with p_ids as (select p.id, p.status, p.total_amount, 
+pa.service_type, pa.name as partner_name from 
+payments p 
+join partner_end_users peu on peu.id = p.partner_end_user_id
+join partners pa on pa.id = peu.partner_id 
+where (p.created_at between date  '08-01-2017' and date '09-01-2017') and p.status in (2, 11, 16, 13, 15, 22)
+and service_type = 'wallet'
+-- and pa.name = 'bitstamp'
+-- and id in (select payment_id from mv_payment_decisions where manual_decision is not null)
+-- and id in (select payment_id from mv_payment_decisions where cutoff_decision in ('approved', 'declined'))
+),
 
 dec as (select * from mv_payment_decisions where payment_id in (select id from p_ids)), 
 
@@ -13,13 +23,19 @@ and allow_verifications #>> '{0}' in ('photo_selfie', 'video_selfie') order by p
 -- (select payment_id, decision, reason, application_name, variables from decisions where  payment_id in (select id from p_ids) and application_name = 'Bender_Auto_Decide')
 
 select 
+status, 
+-- manually_decided, 
 -- reason,
 -- risky_user, 
- label,  
+--  label,  
 num_payments, 
 sum(num_payments) over () as total_payments, 
 -- sum(num_payments) over (partition by reason) as total_payments_per_reason, 
-100*num_payments / sum(num_payments) over () as perc_payments_per_reason
+100*num_payments / sum(num_payments) over () as perc_payments_per_reason, 
+total_amount, 
+sum(total_amount) over () as total_amounts, 
+
+100*total_amount / sum(total_amount) over () as perc_total_amount
 -- linked_to_himself, 
 -- sum(linked_to_himself) over () as total_linked_to_himself, 
 -- 100*linked_to_himself / sum(linked_to_himself) over () as perc_linked_to_himself,
@@ -71,43 +87,46 @@ sum(num_payments) over () as total_payments,
 from (
 select 
 distinct 
+status, 
+-- manually_decided, 
 -- reason,  
 -- risky_user, 
-label,
+-- label,
  count(payment_id) as num_payments, 
- sum(ip_link) as ip_link, 
- sum( cookie_link) as  cookie_link, 
-  sum(btc_link) as btc_link, 
-   sum(cc_link) as cc_link, 
-    sum(phone_link) as phone_link, 
-    sum(linked_suspiciously) as linked_suspiciously, 
-    sum (case when is_proxy = 1  then 1 else 0 end) as is_proxy, 
-    sum(case when 
-    (
-    strong_ip_link 
-      + strong_cookie_link 
-      + strong_btc_link
-      + strong_cc_link
-      + strong_phone_link) > 0 then 1 else 0 end) as strongly_linked,
-      
-sum(case when 
-    (
-    ip_link 
-      + cookie_link 
-      + btc_link
-      + cc_link
-      + phone_link) > 1 then 1 else 0 end) as linked_by_many_elements, 
-sum( case when (
-id_match 
-+ verified_phone_match
-+ good_user_three_ds_avs_match
-+ phone_bin_ip_location_match 
-+ low_model_score
-) > 0 
--- and low_mm_riskscore = 1 
-then 1 else 0 end )as simplex_approve, 
-
-sum(case when (cc_num_users = 2 and phone_num_users = 2 and (ip_num_users = 2 or btc_num_users = 2)) then 1 else 0 end) as linked_to_himself, 
+ sum(total_amount) as total_amount
+--  sum(ip_link) as ip_link, 
+--  sum( cookie_link) as  cookie_link, 
+--   sum(btc_link) as btc_link, 
+--    sum(cc_link) as cc_link, 
+--     sum(phone_link) as phone_link, 
+--     sum(linked_suspiciously) as linked_suspiciously, 
+--     sum (case when is_proxy = 1  then 1 else 0 end) as is_proxy, 
+--     sum(case when 
+--     (
+--     strong_ip_link 
+--       + strong_cookie_link 
+--       + strong_btc_link
+--       + strong_cc_link
+--       + strong_phone_link) > 0 then 1 else 0 end) as strongly_linked,
+--       
+-- sum(case when 
+--     (
+--     ip_link 
+--       + cookie_link 
+--       + btc_link
+--       + cc_link
+--       + phone_link) > 1 then 1 else 0 end) as linked_by_many_elements, 
+-- sum( case when (
+-- id_match 
+-- + verified_phone_match
+-- + good_user_three_ds_avs_match
+-- + phone_bin_ip_location_match 
+-- + low_model_score
+-- ) > 0 
+-- -- and low_mm_riskscore = 1 
+-- then 1 else 0 end )as simplex_approve, 
+-- 
+-- sum(case when (cc_num_users = 2 and phone_num_users = 2 and (ip_num_users = 2 or btc_num_users = 2)) then 1 else 0 end) as linked_to_himself, 
 -- 
 -- sum (case when  (
 --     ip_link 
@@ -121,7 +140,7 @@ sum(case when (cc_num_users = 2 and phone_num_users = 2 and (ip_num_users = 2 or
 -- + phone_bin_ip_location_match 
 -- -- + low_model_score
 -- ) > 0 then 1 else 0 end )as good_strongly_linked, 
-sum(low_mm_riskscore) as low_mm_riskscore
+-- sum(low_mm_riskscore) as low_mm_riskscore
 
 
     
@@ -129,43 +148,48 @@ sum(low_mm_riskscore) as low_mm_riskscore
  from (
  
 select p_ids.id as payment_id,
+p_ids.status as status, 
+total_amount, 
 dec.post_auth_reason as reason,  
+case when p_ids.id in (select payment_id from mv_payment_decisions where manual_decision is not null) then 1
+else 0 end as manually_decided,
 -- (variables ->> 'risky_user') as risky_user, 
 -- dec.post_auth_decision as a_dec,
 -- dec.post_auth_reason as a_reason, 
-case when (al.user_label in ('not_approved_user_cancelled_last_payment')) or (al.user_label = 'other' and al.last_state ilike ('%cancelled%')) then ct.cancellation_type
-when al.user_label = 'other' then al.last_state
-else al.user_master_label end as label,
+-- case when (al.user_label in ('not_approved_user_cancelled_last_payment')) or (al.user_label = 'other' and al.last_state ilike ('%cancelled%')) then ct.cancellation_type
+-- when al.user_label = 'other' then al.last_state
+-- else al.user_master_label end as label,
+al.last_state as label
 -- else al.user_label end as label,
-
-(variables ->> 'ip_num_users')::int as ip_num_users,
- (variables ->> 'cookie_num_users')::int  as cookie_num_users,
-  (variables ->> 'btc_address_num_users')::int  as btc_num_users,
- (variables ->> 'cc_num_users')::int  as cc_num_users,
- (variables ->> 'max_num_phone_users')::int  as phone_num_users, 
- (variables ->> 'partner_type')  as partner_type, 
-case when (variables ->> 'ip_num_users') != 'no_data' and (variables ->> 'ip_num_users')::int > 1  then 1 else 0 end as ip_link,
-case when (variables ->> 'cookie_num_users') != 'no_data' and (variables ->> 'cookie_num_users')::int > 1 then 1 else 0 end as cookie_link,
-case when (variables ->> 'btc_address_num_users') != 'no_data' and (variables ->> 'btc_address_num_users')::int > 1 then 1 else 0 end as btc_link,
-case when (variables ->> 'cc_num_users') != 'no_data' and (variables ->> 'cc_num_users')::int > 1 then 1 else 0 end as cc_link,
-case when (variables ->> 'max_num_phone_users') != 'no_data' and (variables ->> 'max_num_phone_users')::int > 1 then 1 else 0 end as phone_link,
-case when (variables ->> 'ip_num_users') != 'no_data' and (variables ->> 'ip_num_users')::int > 4 then 1 else 0 end as strong_ip_link,
-case when (variables ->> 'cookie_num_users') != 'no_data' and (variables ->> 'cookie_num_users')::int > 2 then 1 else 0 end as strong_cookie_link,
-case when (variables ->> 'btc_address_num_users') != 'no_data' and (variables ->> 'btc_address_num_users')::int > 4 then 1 else 0 end as strong_btc_link,
-case when (variables ->> 'cc_num_users') != 'no_data' and (variables ->> 'cc_num_users')::int > 2 then 1 else 0 end as strong_cc_link,
-case when (variables ->> 'max_num_phone_users') != 'no_data' and (variables ->> 'max_num_phone_users')::int > 2 then 1 else 0 end as strong_phone_link,
-
-case when (variables ->> 'payment_model_score') != 'no_data' and (variables ->> 'payment_model_score')::float < 0.05 then 1 else 0 end as low_model_score,
-case when (variables ->> 'mm_riskscore') != 'no_data' and (variables ->> 'mm_riskscore')::float < 10 then 1 else 0 end as low_mm_riskscore,
-
-case when variables ->> 'linked_suspiciously' = 'true' then 1 else 0 end as linked_suspiciously,
-case when variables ->> 'id_match' = 'true' then 1 else 0 end as id_match, 
-case when variables ->> 'verified_phone_match' = 'true' then 1 else 0 end as verified_phone_match, 
-case when variables ->> 'good_user_three_ds_avs_match' = 'true' then 1 else 0 end as good_user_three_ds_avs_match, 
-case when variables ->> 'phone_bin_ip_location_match' = 'true' then 1 else 0 end as phone_bin_ip_location_match,
-case when rules #>> '{verify_linked_strongly_to_another_user_not_verified_card_by_selfie, decision}' = 'approved' then 1 else 0 end as verify_strongly,
-case when coalesce((variables ->> 'is_proxy'), (variables ->> 'buyer_proxy')) = 'true' then 1 else 0 end as is_proxy
- 
+-- 
+-- (variables ->> 'ip_num_users')::int as ip_num_users,
+--  (variables ->> 'cookie_num_users')::int  as cookie_num_users,
+--   (variables ->> 'btc_address_num_users')::int  as btc_num_users,
+--  (variables ->> 'cc_num_users')::int  as cc_num_users,
+--  (variables ->> 'max_num_phone_users')::int  as phone_num_users, 
+--  (variables ->> 'partner_type')  as partner_type, 
+-- case when (variables ->> 'ip_num_users') != 'no_data' and (variables ->> 'ip_num_users')::int > 1  then 1 else 0 end as ip_link,
+-- case when (variables ->> 'cookie_num_users') != 'no_data' and (variables ->> 'cookie_num_users')::int > 1 then 1 else 0 end as cookie_link,
+-- case when (variables ->> 'btc_address_num_users') != 'no_data' and (variables ->> 'btc_address_num_users')::int > 1 then 1 else 0 end as btc_link,
+-- case when (variables ->> 'cc_num_users') != 'no_data' and (variables ->> 'cc_num_users')::int > 1 then 1 else 0 end as cc_link,
+-- case when (variables ->> 'max_num_phone_users') != 'no_data' and (variables ->> 'max_num_phone_users')::int > 1 then 1 else 0 end as phone_link,
+-- case when (variables ->> 'ip_num_users') != 'no_data' and (variables ->> 'ip_num_users')::int > 4 then 1 else 0 end as strong_ip_link,
+-- case when (variables ->> 'cookie_num_users') != 'no_data' and (variables ->> 'cookie_num_users')::int > 2 then 1 else 0 end as strong_cookie_link,
+-- case when (variables ->> 'btc_address_num_users') != 'no_data' and (variables ->> 'btc_address_num_users')::int > 4 then 1 else 0 end as strong_btc_link,
+-- case when (variables ->> 'cc_num_users') != 'no_data' and (variables ->> 'cc_num_users')::int > 2 then 1 else 0 end as strong_cc_link,
+-- case when (variables ->> 'max_num_phone_users') != 'no_data' and (variables ->> 'max_num_phone_users')::int > 2 then 1 else 0 end as strong_phone_link,
+-- 
+-- case when (variables ->> 'payment_model_score') != 'no_data' and (variables ->> 'payment_model_score')::float < 0.05 then 1 else 0 end as low_model_score,
+-- case when (variables ->> 'mm_riskscore') != 'no_data' and (variables ->> 'mm_riskscore')::float < 10 then 1 else 0 end as low_mm_riskscore,
+-- 
+-- case when variables ->> 'linked_suspiciously' = 'true' then 1 else 0 end as linked_suspiciously,
+-- case when variables ->> 'id_match' = 'true' then 1 else 0 end as id_match, 
+-- case when variables ->> 'verified_phone_match' = 'true' then 1 else 0 end as verified_phone_match, 
+-- case when variables ->> 'good_user_three_ds_avs_match' = 'true' then 1 else 0 end as good_user_three_ds_avs_match, 
+-- case when variables ->> 'phone_bin_ip_location_match' = 'true' then 1 else 0 end as phone_bin_ip_location_match,
+-- case when rules #>> '{verify_linked_strongly_to_another_user_not_verified_card_by_selfie, decision}' = 'approved' then 1 else 0 end as verify_strongly,
+-- case when coalesce((variables ->> 'is_proxy'), (variables ->> 'buyer_proxy')) = 'true' then 1 else 0 end as is_proxy
+--  
 
 -- distinct reason, count(distinct payment_id) as num_payments
  from p_ids 
@@ -177,34 +201,36 @@ left join (select payment_id, variables #> '{Analytic, variables, Analytic}' as 
                               variables #> '{Analytic, rules}' as rules
                               from decisions where application_name = 'Bender_Auto_Decide') var on var.payment_id = p_ids.id
 
-where 
+-- where 
 --  ver_req.ver_requesting_user = 'Manual'
-dec.post_auth_decision = 'verify' 
+-- dec.post_auth_decision in  ('manual', 'verify')
+--  dec.post_kyc_decision in  ('verify', 'manual') 
+-- or dec.post_kyc_decision is null
 
-and dec.post_auth_reason = 'verify_linked_strongly_to_another_user_not_verified_card_by_selfie'
-and 
-variables ->> 'user_previously_reviewed_by_analyst' = 'false'
+-- and dec.post_auth_reason = 'verify_linked_strongly_to_another_user_not_verified_card_by_selfie'
+-- and 
+-- variables ->> 'user_previously_reviewed_by_analyst' = 'false'
 
 
--- and (variables ->> 'risky_user') is not null
+-- and (variables ->> 'risky_user') 
 -- group by 1
 
 --  order by 1 desc limit 50
 )a  
  
 
-where
-partner_type != 'mining_pool'
-and btc_link =0
-and
-(
-id_match 
-+ verified_phone_match
-+ good_user_three_ds_avs_match
-+ phone_bin_ip_location_match 
-+ low_model_score
-) = 0
--- -- and  is_proxy = 0
+-- where
+-- partner_type != 'mining_pool'
+-- and btc_link =0
+-- and
+-- (
+-- id_match 
+-- + verified_phone_match
+-- + good_user_three_ds_avs_match
+-- + phone_bin_ip_location_match 
+-- + low_model_score
+-- ) = 0
+-- -- -- and  is_proxy = 0
 -- where weak_btc_link = 1
 
 -- and 
@@ -219,7 +245,7 @@ id_match
 group by 1
 -- , 2
 ) b 
-where label != 'other'
+-- where label != 'other'
 
 -- and label in ('bad','good')
 order by 1 desc

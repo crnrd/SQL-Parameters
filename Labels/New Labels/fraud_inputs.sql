@@ -3,6 +3,7 @@ as
 
 
 with p_ids as (select id, status from payments where status in (2, 13, 15,  11, 16, 22) 
+and id < (select max(payment_id) - 100 from decisions)
 -- limit 500
 ),
 cb as (select payment_id,

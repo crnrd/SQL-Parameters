@@ -6,7 +6,7 @@ create materialized view mv_cancellation_type (payment_id, cancellation_type) as
 
 with p_ids as (select p.id , pa.service_type as partner_type from payments p
 join partner_end_users peu on peu.id = p.partner_end_user_id
-join partners pa on pa.id = peu.partner_id  where p.status = 16 and p.id between 200000 and 800000), 
+join partners pa on pa.id = peu.partner_id  where p.status = 16 and p.id between 200000 and 1100000), 
 
 all_labels as (select * from mv_all_labels where payment_id in (select id from p_ids)),
 p_dec as (select * from mv_payment_decisions where payment_id in (select id from p_ids)),

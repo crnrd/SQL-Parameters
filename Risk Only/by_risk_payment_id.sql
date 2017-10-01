@@ -39,10 +39,19 @@ SELECT *
 FROM r_partner_seller_snap_events 
 WHERE seller_id IN (SELECT partner_seller_id FROM r_payment_events WHERE payment_id IN ($[pid]));
 
+
+
 -- @WbResult pr
 SELECT *
 FROM r_cc_authorizations
 WHERE payment_id IN ($[pid]);
+
+--@WbResult decisions
+SELECT *
+FROM decisions
+WHERE (r_payment_id IN ($[pid]))
+
+ORDER BY id DESC;
 
 -- Partner end user id
 -- @WbResult peu_snap_full
