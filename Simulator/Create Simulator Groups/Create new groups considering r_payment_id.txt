@@ -1,0 +1,80 @@
+Train Set
+WITH p as (SELECT r.id,
+                  pa.created_at,
+                  pa.handling_at,
+                  pa.id as simplex_payment_id
+            FROM payments pa join r_payments r on r.simplex_payment_id = pa.id 
+            WHERE status NOT IN (0,12,19,20,22,23) and r.simplex_payment_id is not null
+            and DATE(pa.created_at) >= DATE ('06-01-2017') 
+            and DATE(pa.created_at) <= DATE  ('07-31-2017')
+		   and (random() <= 0.70))
+
+INSERT INTO simulator_parameters
+( group_id,
+  payment_id,
+  time_point,
+  risk_mode
+)
+SELECT (SELECT COALESCE(MAX(group_id) +1,1) FROM simulator_parameters),
+       payment_id, pit, 'conservative'--'liberal'
+FROM (SELECT DISTINCT p.id payment_id,
+             least(p.handling_at, COALESCE(d.executed_at,pr.proc_updated_at,p.created_at +INTERVAL '5 minutes')) AS pit
+      FROM p
+        LEFT JOIN (SELECT DISTINCT payment_id,
+                          MIN(TO_TIMESTAMP(variables #>> '{Analytic, executed_at}','YYYY-MM-DD HH24:MI:SS.US')) executed_at
+                   FROM decisions
+                   WHERE application_name IN ('Bender_Auto_Decide','Bender')
+                   GROUP BY 1) d ON d.payment_id = p.simplex_payment_id
+        LEFT JOIN (SELECT DISTINCT payment_id,
+                          MIN(updated_at +INTERVAL '1 minute') AS proc_updated_at
+                   FROM proc_requests
+                   WHERE status = 'success'
+                   AND   tx_type = 'authorization'
+                   GROUP BY 1) pr ON p.simplex_payment_id = pr.payment_id) a;
+
+COMMIT;
+
+
+select  max(group_id) from simulator_parameters;
+
+
+Validation Set
+WITH p as (SELECT r.id,
+                  pa.created_at,
+                  pa.handling_at,
+                  pa.id as simplex_payment_id
+            FROM payments pa join r_payments r on r.simplex_payment_id = pa.id 
+            WHERE status NOT IN (0,12,19,20,22,23) and r.simplex_payment_id is not null
+            and DATE(pa.created_at) >= DATE ('06-01-2017') 
+            and DATE(pa.created_at) <= DATE  ('07-31-2017')
+		   and r.id not in (select payment_id from simulator_parameters 
+          where group_id=TRAIN GROUP ID)
+)
+
+INSERT INTO simulator_parameters
+( group_id,
+  payment_id,
+  time_point,
+  risk_mode
+)
+SELECT (SELECT COALESCE(MAX(group_id) +1,1) FROM simulator_parameters),
+       payment_id, pit, 'conservative'--'liberal'
+FROM (SELECT DISTINCT p.id payment_id,
+             least(p.handling_at, COALESCE(d.executed_at,pr.proc_updated_at,p.created_at +INTERVAL '5 minutes')) AS pit
+      FROM p
+        LEFT JOIN (SELECT DISTINCT payment_id,
+                          MIN(TO_TIMESTAMP(variables #>> '{Analytic, executed_at}','YYYY-MM-DD HH24:MI:SS.US')) executed_at
+                   FROM decisions
+                   WHERE application_name IN ('Bender_Auto_Decide','Bender')
+                   GROUP BY 1) d ON d.payment_id = p.simplex_payment_id
+        LEFT JOIN (SELECT DISTINCT payment_id,
+                          MIN(updated_at +INTERVAL '1 minute') AS proc_updated_at
+                   FROM proc_requests
+                   WHERE status = 'success'
+                   AND   tx_type = 'authorization'
+                   GROUP BY 1) pr ON p.simplex_payment_id = pr.payment_id) a;
+
+COMMIT;
+
+
+select  max(group_id) from simulator_parameters;

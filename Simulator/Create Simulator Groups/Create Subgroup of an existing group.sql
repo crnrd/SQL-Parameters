@@ -1,21 +1,11 @@
-INSERT INTO simulator_groups
-(
-  description
-)
-VALUES
-(
-  '$[?description]'
-);
-
-WbVarDef group_id=@"SELECT MAX(id) FROM simulator_groups";
-
+ 
 INSERT INTO simulator_parameters
 ( group_id,
   payment_id,
   time_point,
   risk_mode
 )
-SELECT $[group_id],
+SELECT (SELECT MAX(id)+1 FROM simulator_parameters),
         p.payment_id,
         p.time_point,
         'conservative'
@@ -27,5 +17,5 @@ WHERE p.id IN (SELECT id
 COMMIT;
 
 SELECT
- MAX(id)
-FROM simulator_groups;
+ MAX(group_id)
+FROM simulator_parameters;
