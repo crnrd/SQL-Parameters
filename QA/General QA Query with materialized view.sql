@@ -3,6 +3,7 @@
 -- refresh MATERIALIZED VIEW vm_decisions_two_days;
 --then make sure to replace the decisions table with vm_decisions_two_days in the queries below
 
+-- updated to work in DataGrip
 
 --@WbResult Nibbler Champ vs Champion difference - count 1
 Select decision_challenger, decision_champion, reason_challenger, reason_champion, count(*) from
