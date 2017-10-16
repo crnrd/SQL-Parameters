@@ -1,0 +1,30 @@
+WbVarDef rid='$[?rid]';
+WbVarDef rvar='$[?rvar]'; -- define as an empty string if not needed. variable in Bender
+WbVarDef svar='$[?svar]'; -- define as an empty string if not needed. variable in Simulation
+
+SELECT sr.run_id,
+       d.payment_id,
+       rp.id,
+       d.decision AS real_dec,
+       sr.decision sim_dec,
+       d.reason real_reason,
+       sr.reason sim_reason,
+       d.variables#>> '{Analytic, variables, Analytic,  $[rvar]}' AS real_full_var,
+       sr.variables#>> '{Analytic,$[svar]}' AS sim_full_var,
+       p.status,
+       d.variables AS real_var,
+       sr.variables sim_var
+FROM simulator_results sr
+  LEFT JOIN simulator_parameters sp ON sr.parameter_id = sp.id
+  left join r_payments rp on rp.id = sp.payment_id
+  LEFT JOIN (SELECT payment_id,
+                    decision,
+                    reason,
+                    variables
+             FROM decisions
+             WHERE application_name = 'Bender_Auto_Decide'
+             AND   analytic_code_version IS NOT NULL)d ON rp.simplex_payment_id = d.payment_id
+
+left join payments p on p.id=d.payment_id
+  
+WHERE sr.run_id IN ($[rid]) ;

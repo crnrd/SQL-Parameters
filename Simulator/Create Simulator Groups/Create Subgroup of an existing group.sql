@@ -5,7 +5,10 @@ INSERT INTO simulator_parameters
   time_point,
   risk_mode
 )
-SELECT (SELECT MAX(group_id)+1 FROM simulator_parameters where group_id <10000),
+
+
+
+SELECT (SELECT MAX(group_id)+1 FROM simulator_parameters),
         p.payment_id,
         p.time_point,
         'conservative'
