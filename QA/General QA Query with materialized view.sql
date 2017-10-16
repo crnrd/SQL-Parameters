@@ -1,10 +1,7 @@
 --select * from  vm_decisions_two_days limit 20;
 --use the following to update noam's materialized view of decisions for last 2 days
---refresh MATERIALIZED VIEW vm_decisions_two_days;
+-- refresh MATERIALIZED VIEW vm_decisions_two_days;
 --then make sure to replace the decisions table with vm_decisions_two_days in the queries below
-
-WbVarDef nibbler_code_version = '$[?challanger_version]'; 
-WbVarDef champ_code_version = '$[?champion_version]';
 
 
 --@WbResult Nibbler Champ vs Champion difference - count 1
@@ -20,14 +17,14 @@ FROM(
  			             variables #>> '{Analytic, reason}' reason
                   FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                  
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 			)Challenger
       left JOIN (SELECT DISTINCT on (payment_id) payment_id,
  			             variables #>> '{Analytic, decision}' decision,
  			             ltrim (variables #>> '{Analytic, reason}') reason
                    FROM vm_decisions_two_days
                          WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')                                                                  
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
                   ) Champion
                          
                ON (Challenger.payment_id = Champion.payment_id))x
@@ -49,14 +46,14 @@ FROM(
  			             variables #>> '{Analytic, reason}' reason
                   FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')              
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 			)Challenger
       left JOIN (SELECT DISTINCT on (payment_id) payment_id,
  			             variables #>> '{Analytic, decision}' decision,
  			             ltrim (variables #>> '{Analytic, reason}') reason
                    FROM vm_decisions_two_days
                          WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')                                      
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
 ) Champion
                          
                ON (Challenger.payment_id = Champion.payment_id))x
@@ -79,7 +76,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                   FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 						) d) Challenger
         LEFT JOIN (SELECT DISTINCT payment_id,
                           KEY,
@@ -88,7 +85,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                          FROM vm_decisions_two_days
                   WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')               
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
 							 ) z) Champion
                ON (Challenger.payment_id = Champion.payment_id
 									AND Challenger.key = Champion.key)
@@ -118,7 +115,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                   FROM vm_decisions_two_days
                   WHERE application_name = 'Nibbler_Challenger'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[challanger_version]')                    
+                  and variables #>> '{Analytic, analytic_code_version}' in (:challanger_version)
 						) d) Challenger
         LEFT JOIN (SELECT DISTINCT payment_id,
                           KEY,
@@ -127,7 +124,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic,variables, Analytic}')). *
                          FROM vm_decisions_two_days
                   WHERE application_name = 'Bender_Auto_Decide'
-                  and variables #>> '{Analytic, analytic_code_version}' in ('$[champion_version]')              
+                  and variables #>> '{Analytic, analytic_code_version}' in (:champion_version)
 							 ) z) Champion
                ON (Challenger.payment_id = Champion.payment_id
 									AND Challenger.key = Champion.key)
