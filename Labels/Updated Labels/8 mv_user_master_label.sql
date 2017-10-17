@@ -1,4 +1,4 @@
-drop materialized view mv_new_user_label cascade;
+drop materialized view mv_user_master_label_or cascade;
 commit;
 create materialized view mv_user_master_label (email, user_master_label)
 as 

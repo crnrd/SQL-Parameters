@@ -8,7 +8,10 @@ with p_ids as (select id, status from payments where status in (2, 13, 15,  11, 
 cb as (select payment_id,
 case when reason_code in (4837, 4870,  83, 75) then 'Fraud'
 else 'Service' end as cb_type 
-from chargebacks where payment_id in (select id from p_ids)), 
+from chargebacks where payment_id in (select id from p_ids) 
+Union All 
+select payment_id, fraud_type::text as cb_type 
+from chargeback_decisions where payment_id in (select id from p_ids)) , 
 
 -- rrq as (select payment_id, 
 -- case when reason_code in (6341, 6321,33) then 'Fraud' 
@@ -20,8 +23,8 @@ case when descriptive_reason = 'Preventative Fraud' then 'Fraud'
 else 'Service' end as refund_type -- assumes there is only one reason for fraud refunds. 
 from refunds where payment_id in (select id from p_ids)), 
 
-fw as (select payment_id, fraud_type_raw as fw_type
-from fraud_warnings where payment_id in (select id from p_ids))
+fw as (select payment_id, fraud_type as fw_type
+from fraud_warning_classifications where payment_id in (select id from p_ids))
 
 select * from (
 select p_ids.id as payment_id, 
@@ -37,7 +40,8 @@ where cb_type is not null or refund_type is not null
  or fw_type is not null
 ;
 commit;
-select *  from mv_fraud_inputs  where refund_type = 'Fraud' order by 1 desc limit 50;
+select *  from mv_fraud_inputs limit 10000;
+select distinct fw_type from mv_fraud_inputs ;
 
 
 
@@ -47,4 +51,4 @@ GRANT SELECT ON credit_card_capping TO analyst, application;
 
 ALTER TABLE credit_card_capping OWNER TO playground_updater;
 
-
+drop mv_fraud_inputs_or cascade ;

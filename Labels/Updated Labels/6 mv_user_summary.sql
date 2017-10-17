@@ -1,12 +1,14 @@
 drop materialized view mv_user_summary cascade;
 commit;
-create materialized view mv_user_summary 
+create materialized view mv_user_summary
 
 (email, 
 user_last_decision, 
 user_last_manual_decision, 
 user_risk_status,
 fraud_payments, 
+third_party_fraud_payment,
+friendly_fraud_payment,
 service_cb_or_refund_payments, 
 old_approved_payments, 
 approved_payments) 
@@ -69,10 +71,11 @@ uld.last_decision as user_last_decision,
 ulmd.last_decision as user_last_menual_decision, 
 user_risk_status, 
 sum(fraud_payment) as fraud_payments, 
+sum(third_party_fraud_payment) as third_party_fraud_payments, 
+sum(friendly_fraud_payment) as friendly_fraud_payments, 
 sum(service_cb_or_refund_payment) as service_cb_or_refund_payments, 
 sum(old_approved_payment) as old_approved_payments, 
-sum(approved_payment) as approved_payments 
-
+sum(approved_payment) as approved_payments
 
 
 from 
@@ -83,6 +86,8 @@ from
  al.last_decision, 
  al.last_state,
  case when al.last_state in ('fraud') then 1 else 0 end as fraud_payment,
+case when al.last_state in ('3rd Party Fraud') then 1 else 0 end as third_party_fraud_payment,
+case when al.last_state in ('Friendly Fraud') then 1 else 0 end as friendly_fraud_payment,
 case when al.last_state in ('service_cb', 'refund') then 1 else 0 end as service_cb_or_refund_payment,
 case when al.last_state in ('approved_old') then 1 else 0 end as old_approved_payment,
 case when al.last_state in ('approved') then 1 else 0 end as approved_payment
@@ -101,3 +106,7 @@ group by 1, 2,3, 4
  ;
 
 commit;
+select * from payments limit 1 ;
+
+select * from mv_user_summary_or limit 50000 ;
+label

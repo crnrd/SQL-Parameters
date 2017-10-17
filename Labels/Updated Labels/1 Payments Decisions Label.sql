@@ -1,6 +1,6 @@
 refresh materialized view mv_payment_decisions;
  
-drop materialized view mv_payment_decisions cascade ;
+drop materialized view mv_payment_decisions_or cascade ;
 
 create  materialized view mv_payment_decisions
  (payment_id, 

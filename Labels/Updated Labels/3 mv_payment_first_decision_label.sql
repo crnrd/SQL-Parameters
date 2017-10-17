@@ -1,5 +1,5 @@
 
- drop  materialized view mv_payment_first_decision_label cascade;
+ drop  materialized view mv_payment_first_decision_label_or cascade;
  create  materialized view mv_payment_first_decision_label  (payment_id, payment_label) as 
 with 
 p_ids as (select id from payments where status in (2, 13, 15,  11, 16, 22) 
@@ -23,11 +23,12 @@ when post_auth_decision = 'verify' and post_auth_reason in ('Policy require phot
 when post_auth_decision = 'verify' then 'auto_risk_verify'
 when ver_requesting_user = 'Manual' then 'verify' 
 when manual_decision = 'declined' and (manual_strength = 'Strong' 
-or manual_reason in ('REAL REAL REAL FRAUD!')) -- Add here the new reasons from the DSS when ready
+or manual_reason in ('Carder', 'Fraud Ring', 'Identity Issues', 'Fake Selfie', 'External Indicators', 'Strong Link To Fraud' )) -- Add here the new reasons from the DSS when ready
   then 'declined_fraud'
-  
 when manual_decision = 'declined' and 
-(manual_strength = 'Weak' or manual_reason in ('MAYBE ITS FRAUD!'))then 'declined_potential_fraud' -- Add here the new reasons from the DSS when ready
+(manual_strength = 'Weak' or manual_reason in ('Suspicious Behavior in Form', 'Suspicious Payment, Failed Verification', 'Online Bad Indicators', 'Shady Person, Linking Indicates Bad', 'Nothing Good' ))then 'declined_potential_fraud' -- Add here the new reasons from the DSS when ready
+when manual_decision = 'declined' and 
+(manual_strength ilike 'policy' or manual_reason in ('Partner Policy', 'Underage', 'Undesired Users - Policy', 'Aggressive User', '3rd Party Scam' ))then 'declined_policy'
 when manual_decision = 'approved' then 'approved'
 when cutoff_decision = 'approved'  or batch_decision = 'approved' then 'cutoff_approved'
 when cutoff_decision = 'declined' or batch_decision = 'declined' then 'cutoff_declined' 
@@ -43,9 +44,9 @@ commit;
 select count(*) from mv_payment_first_decision_label;
 select count(*) from mv_payment_last_decision_label ;
 select count(*) from mv_payment_last_state_label ;
+select * from mv_payment_first_decision_label limit 100 ;
 
-
-
+or
 GRANT SELECT ON mv_payment_decisions TO analyst, application; 
 
 ALTER TABLE mv_payment_decisions OWNER TO playground_updater;

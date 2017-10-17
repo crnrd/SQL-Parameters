@@ -1,5 +1,5 @@
 
-drop materialized view mv_payment_last_decision_label cascade;
+drop materialized view mv_payment_last_decision_label_or cascade;
 create materialized view mv_payment_last_decision_label (payment_id, payment_label)
  as 
 with 
@@ -16,17 +16,21 @@ select pd.payment_id,
 case
 --Offline Decisions 
 when offline_manual_decision = 'declined' and (offline_manual_strength = 'Strong' 
-or offline_manual_reason in ('REAL REAL REAL FRAUD!')) -- Add here the new reasons from the DSS when ready
+or offline_manual_reason in ('Carder', 'Fraud Ring', 'Identity Issues', 'Fake Selfie', 'External Indicators', 'Strong Link To Fraud')) -- Add here the new reasons from the DSS when ready
   then 'declined_fraud'
 when offline_manual_decision = 'declined' and 
-(offline_manual_strength = 'Weak' or offline_manual_reason in ('MAYBE ITS FRAUD!'))then 'declined_potential_fraud' -- Add here the new reasons from the DSS when ready
+(offline_manual_strength = 'Weak' or offline_manual_reason in ('Suspicious Behavior in Form', 'Suspicious Payment, Failed Verification', 'Online Bad Indicators', 'Shady Person, Linking Indicates Bad', 'Nothing Good'))then 'declined_potential_fraud' -- Add here the new reasons from the DSS when ready
 when  offline_manual_decision = 'approved' then 'approved'
+when offline_manual_decision = 'declined' and 
+(manual_strength = 'policy' or manual_reason in ('Partner Policy', 'Underage', 'Undesired Users - Policy', 'Aggressive User', '3rd Party Scam' ))then 'declined_policy'
 --Manual Decisions
 when manual_decision = 'declined' and (manual_strength = 'Strong' 
-or manual_reason in ('REAL REAL REAL FRAUD!')) -- Add here the new reasons from the DSS when ready
-  then 'declined_fraud'  
+or manual_reason in ('Carder', 'Fraud Ring', 'Identity Issues', 'Fake Selfie', 'External Indicators', 'Strong Link To Fraud' )) -- Add here the new reasons from the DSS when ready
+  then 'declined_fraud'
 when manual_decision = 'declined' and 
-(manual_strength = 'Weak' or manual_reason in ('MAYBE ITS FRAUD!')) then 'declined_potential_fraud' -- Add here the new reasons from the DSS when ready
+(manual_strength = 'Weak' or manual_reason in ('Suspicious Behavior in Form', 'Suspicious Payment, Failed Verification', 'Online Bad Indicators', 'Shady Person, Linking Indicates Bad', 'Nothing Good' ))then 'declined_potential_fraud' -- Add here the new reasons from the DSS when ready
+when manual_decision = 'declined' and 
+(manual_strength = 'policy' or manual_reason in ('Partner Policy', 'Underage', 'Undesired Users - Policy', 'Aggressive User', '3rd Party Scam' ))then 'declined_policy'
 when  manual_decision = 'approved' then 'approved'
 when ver_requesting_user = 'Manual'
 --  and p_ids.status = 16 
