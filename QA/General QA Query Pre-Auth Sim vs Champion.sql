@@ -23,15 +23,19 @@ FROM
     FROM (
            SELECT DISTINCT ON (payment_id)
              payment_id,
-             variables #>> '{Analytic, decision}' decision,
-             variables #>> '{Analytic, reason}'   reason,
-             executed_at
-           FROM vm_decisions_two_days
-           WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
-                 AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
+             decision,
+             reason,
+             sp.time_point
+           FROM
+             simulator_results sr,
+             simulator_parameters sp
+           WHERE sr.run_id = :run_id
+                 AND sr.parameter_id = sp.id
+
+
          ) Challenger
       LEFT JOIN (SELECT DISTINCT ON (payment_id)
-                   payment_id,
+                   r_payment_id,
                    variables #>> '{Analytic, decision}'      decision,
                    ltrim(variables #>> '{Analytic, reason}') reason,
                    executed_at
@@ -40,7 +44,7 @@ FROM
                        AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                 ) Champion
 
-        ON (Challenger.payment_id = Champion.payment_id AND Challenger.executed_at = Champion.executed_at)) x
+        ON (Challenger.payment_id = Champion.r_payment_id AND Challenger.time_point = Champion.executed_at)) x
 WHERE reason_challenger != reason_champion
 
 GROUP BY 1, 2, 3, 4
@@ -58,15 +62,17 @@ FROM (
        FROM (
               SELECT DISTINCT ON (payment_id)
                 payment_id,
-                variables #>> '{Analytic, decision}' decision,
-                variables #>> '{Analytic, reason}'   reason,
-                executed_at
-              FROM vm_decisions_two_days
-              WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
-                    AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
+                decision,
+                reason,
+                sp.time_point
+              FROM
+                simulator_results sr,
+                simulator_parameters sp
+              WHERE sr.run_id = :run_id
+                    AND sr.parameter_id = sp.id
             ) Challenger
          LEFT JOIN (SELECT DISTINCT ON (payment_id)
-                      payment_id,
+                      r_payment_id,
                       variables #>> '{Analytic, decision}'      decision,
                       ltrim(variables #>> '{Analytic, reason}') reason,
                       executed_at
@@ -75,7 +81,7 @@ FROM (
                           AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                    ) Champion
 
-           ON (Challenger.payment_id = Champion.payment_id AND Challenger.executed_at = Champion.executed_at)) x
+           ON (Challenger.payment_id = Champion.r_payment_id AND Challenger.time_point = Champion.executed_at)) x
 WHERE reason_challenger != reason_champion
 ORDER BY reason_challenger;
 
@@ -87,36 +93,38 @@ FROM (
          Challenger.payment_id,
          Challenger.key,
          Challenger_value,
-         Champion_value,
+         Champion_value
        FROM (SELECT DISTINCT
                payment_id,
                KEY,
                value AS Challenger_value,
-               executed_at
+               time_point
              FROM (SELECT
                      payment_id,
-                     executed_at,
-                     (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                   FROM vm_decisions_two_days
-                   WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
-                         AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
+                     sp.time_point,
+                     (jsonb_each_text(variables #> '{Analytic}')).*
+                   FROM
+                     simulator_results sr,
+                     simulator_parameters sp
+                   WHERE sr.run_id = :run_id
+                         AND sr.parameter_id = sp.id
                   ) d) Challenger
          LEFT JOIN (SELECT DISTINCT
-                      payment_id,
+                      r_payment_id,
                       KEY,
                       value AS Champion_Value,
                       executed_at
                     FROM (SELECT
-                            payment_id,
+                            r_payment_id,
                             executed_at,
                             (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
                           FROM vm_decisions_two_days
                           WHERE application_name = 'Bender_Pre_Auth_Decide'
                                 AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                          ) z) Champion
-           ON (Challenger.payment_id = Champion.payment_id
+           ON (Challenger.payment_id = Champion.r_payment_id
                AND Challenger.key = Champion.key
-               AND Challenger.executed_at = Champion.executed_at)
+               AND Challenger.time_point = Champion.executed_at)
        WHERE (lower(challenger_value) != lower(champion_value))
              AND Challenger.key NOT IN ('variable_for_random_approve',
                                         'variable_for_random_approve_num_all_high_threshold',
@@ -145,31 +153,33 @@ FROM (
                payment_id,
                KEY,
                value AS Challenger_value,
-               executed_at
+               time_point
              FROM (SELECT
                      payment_id,
-                     executed_at,
-                     (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                   FROM vm_decisions_two_days
-                   WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
-                         AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
+                     time_point,
+                     (jsonb_each_text(variables #> '{ Analytic}')).*
+                   FROM
+                     simulator_results sr,
+                     simulator_parameters sp
+                   WHERE sr.run_id = :run_id
+                         AND sr.parameter_id = sp.id
                   ) d) Challenger
          LEFT JOIN (SELECT DISTINCT
-                      payment_id,
+                      r_payment_id,
                       KEY,
                       executed_at,
                       value AS Champion_Value
                     FROM (SELECT
-                            payment_id,
+                            r_payment_id,
                             executed_at,
                             (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
                           FROM vm_decisions_two_days
                           WHERE application_name = 'Bender_Pre_Auth_Decide'
                                 AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                          ) z) Champion
-           ON (Challenger.payment_id = Champion.payment_id
+           ON (Challenger.payment_id = Champion.r_payment_id
                AND Challenger.key = Champion.key
-               AND Challenger.executed_at = Champion.executed_at)
+               AND Challenger.time_point = Champion.executed_at)
        WHERE (lower(challenger_value) != lower(champion_value)) AND
              Challenger.key NOT IN ('variable_for_random_approve',
                                     'variable_for_random_approve_num_all_high_threshold',
@@ -179,4 +189,6 @@ FROM (
      ) s
 GROUP BY 1, 2, 3
 ORDER BY 1, 2, 3;
+
+
 
