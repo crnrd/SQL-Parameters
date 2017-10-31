@@ -130,13 +130,19 @@ FROM (
                                         'variable_for_random_approve_num_all_high_threshold',
                                         'variable_for_approve_payment_model_score_low_threshold',
                                         'random_value_for_control_group',
-                                        'card_verification_degree')
-
-
+                                        'card_verification_degree',
+                                        'avs_match',
+                                        'decent_user_nothing_bad',
+                                        'good_user_three_ds_avs_match',
+                                        'id_match',
+                                        'max_user_age_days',
+                                        'Variable_for_random_approve_under_limit_control_group')
      ) s
 ORDER BY key;
 
 --@WbResult Nibbler Champ/challenge diff in variables - count
+
+
 
 SELECT
   key,
@@ -185,7 +191,13 @@ FROM (
                                     'variable_for_random_approve_num_all_high_threshold',
                                     'variable_for_approve_payment_model_score_low_threshold',
                                     'random_value_for_control_group',
-                                    'card_verification_degree')
+                                    'card_verification_degree',
+                                    'avs_match',
+                                    'decent_user_nothing_bad',
+                                    'good_user_three_ds_avs_match',
+                                    'id_match',
+                                    'max_user_age_days',
+                                    'Variable_for_random_approve_under_limit_control_group')
      ) s
 GROUP BY 1, 2, 3
 ORDER BY 1, 2, 3;
