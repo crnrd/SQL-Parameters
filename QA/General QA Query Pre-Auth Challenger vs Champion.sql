@@ -1,7 +1,3 @@
---select * from  vm_decisions_two_days limit 20;
---use the following to update noam's materialized view of decisions for last 2 days
-REFRESH MATERIALIZED VIEW vm_decisions_two_days;
---then make sure to replace the decisions table with vm_decisions_two_days in the queries below
 
 -- updated to work in DataGrip
 
@@ -26,7 +22,7 @@ FROM
              variables #>> '{Analytic, decision}' decision,
              variables #>> '{Analytic, reason}'   reason,
              executed_at
-           FROM vm_decisions_two_days
+           FROM decisions
            WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
                  AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
          ) Challenger
@@ -35,7 +31,7 @@ FROM
                    variables #>> '{Analytic, decision}'      decision,
                    ltrim(variables #>> '{Analytic, reason}') reason,
                    executed_at
-                 FROM vm_decisions_two_days
+                 FROM decisions
                  WHERE application_name = 'Bender_Pre_Auth_Decide'
                        AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                 ) Champion
@@ -61,7 +57,7 @@ FROM (
                 variables #>> '{Analytic, decision}' decision,
                 variables #>> '{Analytic, reason}'   reason,
                 executed_at
-              FROM vm_decisions_two_days
+              FROM decisions
               WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
                     AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
             ) Challenger
@@ -70,7 +66,7 @@ FROM (
                       variables #>> '{Analytic, decision}'      decision,
                       ltrim(variables #>> '{Analytic, reason}') reason,
                       executed_at
-                    FROM vm_decisions_two_days
+                    FROM decisions
                     WHERE application_name = 'Bender_Pre_Auth_Decide'
                           AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                    ) Champion
@@ -99,7 +95,7 @@ FROM (
                      payment_id,
                      executed_at,
                      (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                   FROM vm_decisions_two_days
+                   FROM decisions
                    WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
                          AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
                   ) d) Challenger
@@ -112,7 +108,7 @@ FROM (
                             payment_id,
                             executed_at,
                             (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                          FROM vm_decisions_two_days
+                          FROM decisions
                           WHERE application_name = 'Bender_Pre_Auth_Decide'
                                 AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                          ) z) Champion
@@ -170,7 +166,7 @@ FROM (
                      payment_id,
                      executed_at,
                      (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                   FROM vm_decisions_two_days
+                   FROM decisions
                    WHERE application_name = 'Nibbler_Pre_Auth_Challenger'
                          AND variables #>> '{Analytic, analytic_code_version}' IN (:challanger_version)
                   ) d) Challenger
@@ -183,7 +179,7 @@ FROM (
                             payment_id,
                             executed_at,
                             (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                          FROM vm_decisions_two_days
+                          FROM decisions
                           WHERE application_name = 'Bender_Pre_Auth_Decide'
                                 AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                          ) z) Champion
