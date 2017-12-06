@@ -1,7 +1,3 @@
---select * from  vm_decisions_two_days limit 20;
---use the following to update noam's materialized view of decisions for last 2 days
-REFRESH MATERIALIZED VIEW vm_decisions_two_days;
---then make sure to replace the decisions table with vm_decisions_two_days in the queries below
 
 -- updated to work in DataGrip
 
@@ -39,7 +35,7 @@ FROM
                    variables #>> '{Analytic, decision}'      decision,
                    ltrim(variables #>> '{Analytic, reason}') reason,
                    executed_at
-                 FROM vm_decisions_two_days
+                 FROM decisions
                  WHERE application_name = 'Bender_Pre_Auth_Decide'
                        AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                 ) Champion
@@ -76,7 +72,7 @@ FROM (
                       variables #>> '{Analytic, decision}'      decision,
                       ltrim(variables #>> '{Analytic, reason}') reason,
                       executed_at
-                    FROM vm_decisions_two_days
+                    FROM decisions
                     WHERE application_name = 'Bender_Pre_Auth_Decide'
                           AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                    ) Champion
@@ -118,7 +114,7 @@ FROM (
                             r_payment_id,
                             executed_at,
                             (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                          FROM vm_decisions_two_days
+                          FROM decisions
                           WHERE application_name = 'Bender_Pre_Auth_Decide'
                                 AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                          ) z) Champion
@@ -130,13 +126,19 @@ FROM (
                                         'variable_for_random_approve_num_all_high_threshold',
                                         'variable_for_approve_payment_model_score_low_threshold',
                                         'random_value_for_control_group',
-                                        'card_verification_degree')
-
-
+                                        'card_verification_degree',
+                                        'avs_match',
+                                        'decent_user_nothing_bad',
+                                        'good_user_three_ds_avs_match',
+                                        'id_match',
+                                        'max_user_age_days',
+                                        'Variable_for_random_approve_under_limit_control_group')
      ) s
 ORDER BY key;
 
 --@WbResult Nibbler Champ/challenge diff in variables - count
+
+
 
 SELECT
   key,
@@ -173,7 +175,7 @@ FROM (
                             r_payment_id,
                             executed_at,
                             (jsonb_each_text(variables #> '{Analytic,variables, Analytic}')).*
-                          FROM vm_decisions_two_days
+                          FROM decisions
                           WHERE application_name = 'Bender_Pre_Auth_Decide'
                                 AND variables #>> '{Analytic, analytic_code_version}' IN (:champion_version)
                          ) z) Champion
@@ -185,7 +187,13 @@ FROM (
                                     'variable_for_random_approve_num_all_high_threshold',
                                     'variable_for_approve_payment_model_score_low_threshold',
                                     'random_value_for_control_group',
-                                    'card_verification_degree')
+                                    'card_verification_degree',
+                                    'avs_match',
+                                    'decent_user_nothing_bad',
+                                    'good_user_three_ds_avs_match',
+                                    'id_match',
+                                    'max_user_age_days',
+                                    'Variable_for_random_approve_under_limit_control_group')
      ) s
 GROUP BY 1, 2, 3
 ORDER BY 1, 2, 3;

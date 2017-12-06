@@ -41,7 +41,7 @@ select * from simulator_parameters where group_id in (select parameter_group_id 
 
 -- @WbResult failed runs
 select distinct (status_description), count(*)  from (select sp.*, sr.* from simulator_results sr, simulator_parameters sp where 
-sr.parameter_id = sp.id and sr.run_id in ($[rid])) a group by 1;
+sr.parameter_id = sp.id and sr.run_id in (4295)) a group by 1;
 
 
 
