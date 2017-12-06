@@ -134,7 +134,9 @@ FROM (
                                         'user_first_time_non_threeds',
                                         'variable_for_rule_verify_first',
                                         'video_selfie_1',
-                                        'was_auth_done_with_threeds')
+                                        'was_auth_done_with_threeds',
+                                       'is_card_avs_matched_to_older_card',
+                                       'name_email_address_avs_match')
               and Champion.KEY NOT IN ('analyst_will_send_selfie',
                                        'photo_selfie_1',
                                        'variable_for_random_approve_under_limit_control_group')
@@ -205,7 +207,9 @@ FROM (
                                     'user_first_time_non_threeds',
                                     'variable_for_rule_verify_first',
                                     'video_selfie_1',
-                                    'was_auth_done_with_threeds')
+                                    'was_auth_done_with_threeds',
+                                    'is_card_avs_matched_to_older_card',
+                                   'name_email_address_avs_match')
               and Champion.KEY NOT IN ('analyst_will_send_selfie',
                                        'photo_selfie_1',
                                        'variable_for_random_approve_under_limit_control_group')
