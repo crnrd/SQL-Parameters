@@ -61,7 +61,7 @@ SELECT Challenger.payment_id,
                   FROM(
                   
                   select sr.*, sp.payment_id, sp.time_point from simulator_results sr 
-                  left join simulator_parameters sp on sr.parameter_id = sp.id where run_id  IN ($[second_sim])
+                  left join simulator_parameters sp on sr.parameter_id = sp.id where run_id  IN (:second_sim)
             ) d)s) Challenger
         inner JOIN (SELECT payment_id,
                           KEY,
@@ -70,7 +70,7 @@ SELECT Challenger.payment_id,
                          (jsonb_each_text(variables#> '{Analytic}')). *
                   FROM(
                   select sr.*, sp.payment_id, sp.time_point from simulator_results sr 
-                  left join simulator_parameters sp on sr.parameter_id = sp.id where run_id  IN ($[first_sim])
+                  left join simulator_parameters sp on sr.parameter_id = sp.id where run_id  IN (:first_sim)
                ) z)t) Champion
                ON (Challenger.payment_id = Champion.payment_id
                   AND Challenger.key = Champion.key)
