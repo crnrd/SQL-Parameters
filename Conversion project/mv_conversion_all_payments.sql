@@ -4,6 +4,8 @@ SELECT
   pre_auth.s_payment_id,
 
   CASE
+  WHEN p.status = 2
+    THEN '10 approved'
   WHEN post_kyc.payment_status_in_stage IS NOT NULL
     THEN '09 post_kyc'
   WHEN post_auth_verifications.payment_status_in_stage IS NOT NULL
@@ -59,5 +61,5 @@ FROM
   LEFT JOIN
   mv_conversion_post_kyc post_kyc
     ON post_auth_verifications.s_payment_id = post_kyc.s_payment_id
-  WHERE p.created_at between now()-interval '67 days' and now()-interval '7 days'
+  WHERE p.created_at between now()-interval '37 days' and now()-interval '7 days'
         and pre_auth.s_payment_id is not null;

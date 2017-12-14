@@ -204,7 +204,7 @@ SELECT
 
 
   when is_selfie_requested = TRUE and is_kyc_identity_requested = FALSE and selfie_status in ('declined') then 'selfie: selfie declined'
-      when is_selfie_requested = TRUE and is_kyc_identity_requested = FALSE and cancellation_reason is not null then concat('selfie: ', cancellation_reason)
+  when is_selfie_requested = TRUE and is_kyc_identity_requested = FALSE and cancellation_reason is not null then concat('selfie: ', cancellation_reason)
   when is_selfie_requested = TRUE and is_kyc_identity_requested = FALSE and selfie_status in ('did not respond') then 'selfie: not cancelled, selfie did not respond'
 
   when is_selfie_requested = FALSE and is_kyc_identity_requested = TRUE and kyc_status in ('declined') then 'kyc: kyc declined by partner'

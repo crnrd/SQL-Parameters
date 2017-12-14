@@ -1,7 +1,7 @@
 CREATE MATERIALIZED VIEW mv_conversion_auth AS
 
 
-WITH conversion_auth_last_decision_for_payment AS
+WITH last_decision_for_payment AS
 (SELECT
    payment_id,
    max(id) AS last_process
@@ -12,7 +12,7 @@ WITH conversion_auth_last_decision_for_payment AS
  GROUP BY 1),
 
 
-    conversion_auth_processor_status_and_reason AS
+    processor_status_and_reason AS
   (SELECT
      id,
      payment_id,
@@ -75,7 +75,7 @@ WITH conversion_auth_last_decision_for_payment AS
         when reason ilike '%declined by risk management%' then 'declined by risk management'
         else 'other' end as reason
     FROM
-      conversion_auth_processor_status_and_reason
+      processor_status_and_reason
   )
 
 SELECT
@@ -100,8 +100,8 @@ SELECT
   WHEN psar.status IS NULL THEN 'Error in process'
   ELSE 'unexpected value' END AS status_reason_in_stage
 FROM
-  conversion_auth_last_decision_for_payment ldfp,
-  conversion_auth_processor_status_and_reason psar,
+  last_decision_for_payment ldfp,
+  processor_status_and_reason psar,
   grouped_reasons gr
 WHERE
   ldfp.payment_id = psar.payment_id
