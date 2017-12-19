@@ -37,7 +37,7 @@ SELECT
     when epv.email_verification_status = 'failed' and  epv.phone_verification_status = 'failed' then 'failed_both_verifications'
     when epv.email_verification_status = 'failed' then 'failed_email_verifications'
     when epv.phone_verification_status = 'failed' then 'failed_phone_verifications'
-    else 'unexpected value' end as status_reason_in_stage
+    else 'unexpected_value' end as status_reason_in_stage
 
 
 FROM

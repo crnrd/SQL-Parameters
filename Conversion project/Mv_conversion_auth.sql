@@ -63,7 +63,7 @@ last_decision_for_payment AS
      WHEN processor = 'credorax' AND status = 'failed' THEN raw_response #>> '{z3}'
      -- Errors:
      WHEN status ISNULL THEN 'Processing error'
-     ELSE 'Unexpected Value' END AS reason
+     ELSE 'unexpected _value' END AS reason
    FROM
      proc_requests,
      p_ids
@@ -78,12 +78,12 @@ last_decision_for_payment AS
     SELECT
       id,
       case
-        when reason ilike '%cardholder 3D Authentication failure%' then 'cardholder 3D Authentication failure'
-        when reason ilike '%CVV2 Failure%' then 'cvv2 failure'
-        when reason ilike '%do not honour%' then 'do not honour'
-        when reason ilike '%Not permitted on card%' then 'not permitted on card'
-        when reason ilike '%sufficient funds%' then 'no sufficient funds'
-        when reason ilike '%declined by risk management%' then 'declined by risk management'
+        when reason ilike '%cardholder 3D Authentication failure%' then 'cardholder_3D_Authentication_failure'
+        when reason ilike '%CVV2 Failure%' then 'cvv2_failure'
+        when reason ilike '%do not honour%' then 'do_not_honour'
+        when reason ilike '%Not permitted on card%' then 'not_permitted_on_card'
+        when reason ilike '%sufficient funds%' then 'no_sufficient_funds'
+        when reason ilike '%declined by risk management%' then 'declined_by_risk_management'
         else 'other' end as reason
     FROM
       processor_status_and_reason
@@ -99,17 +99,19 @@ SELECT
   ELSE psar.status::text END        AS payment_status_in_stage,
   CASE
   -- credorax exemption: 3ds when not enrolled in 3ds:
-  WHEN psar.status = 'success' AND psar.transaction_type = '3ds' AND psar.is_3ds_enrolled IN ('not-3ds-enrolled') THEN 'success in 3ds when not enrolled in 3ds'
-  WHEN psar.status = 'failed' AND psar.transaction_type = '3ds' AND psar.is_3ds_enrolled IN ('not-3ds-enrolled') THEN 'failed in 3ds when not enrolled in 3ds'
+  WHEN psar.status = 'success' AND psar.transaction_type = '3ds' AND psar.is_3ds_enrolled IN ('not-3ds-enrolled') THEN 'success_3ds_not_enrolled_in_3ds'
+  WHEN psar.status = 'failed' AND psar.transaction_type = '3ds' AND psar.is_3ds_enrolled IN ('not-3ds-enrolled') THEN 'failed_3ds_not_enrolled_in_3ds'
   -- success:
-  WHEN psar.status = 'success' AND psar.transaction_type = '3ds' AND psar.is_3ds_enrolled IN ('processor does not supply information', '3ds-enrolled') THEN 'success in 3ds'
-  WHEN psar.status = 'success' AND psar.transaction_type = 'non-3ds' THEN 'success in non-3ds'
+  WHEN psar.status = 'success' AND psar.transaction_type = '3ds' AND psar.is_3ds_enrolled IN ('processor does not supply information', '3ds-enrolled') THEN 'success_3ds'
+  WHEN psar.status = 'success' AND psar.transaction_type = 'non-3ds' THEN 'success_non_3ds'
   --failed:
-  WHEN psar.status = 'failed' AND psar.transaction_type = '3ds' THEN concat('3ds: ', gr.reason)
-  WHEN psar.status = 'failed' AND psar.transaction_type = 'non-3ds' THEN concat('non-3ds: ', gr.reason)
+  WHEN psar.status = 'failed' AND psar.transaction_type = '3ds' THEN concat('3ds:_', gr.reason)
+  WHEN psar.status = 'failed' AND psar.transaction_type = 'non-3ds' THEN concat('non-3ds:_', gr.reason)
   -- errors:
-  WHEN psar.status IS NULL THEN 'Error in process'
-  ELSE 'unexpected value' END AS status_reason_in_stage
+  WHEN psar.status IS NULL THEN 'error_in_process'
+  WHEN psar.transaction_type IS NULL THEN 'error_in_process'
+
+  ELSE 'unexpected_value' END AS status_reason_in_stage
 FROM
   last_decision_for_payment ldfp,
   processor_status_and_reason psar,

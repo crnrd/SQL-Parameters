@@ -46,7 +46,7 @@ SELECT
   WHEN form_billing_info.payment_status_in_stage IS NOT NULL
     THEN form_billing_info.payment_status_in_stage
 
-  ELSE 'unexpected value' END AS status_in_farthest_stage,
+  ELSE 'unexpected_value' END AS status_in_farthest_stage,
 
   CASE
   WHEN cancelled_payments.cancellation_reason IS NOT NULL
@@ -67,7 +67,7 @@ SELECT
     THEN email_and_phone_verifications.status_reason_in_stage
   WHEN form_billing_info.payment_status_in_stage IS NOT NULL
     THEN form_billing_info.status_reason_in_stage
-  ELSE 'unexpected value' END AS reason_for_farthest_stage
+  ELSE 'unexpected_value' END AS reason_for_farthest_stage
 
 FROM
   payments p
