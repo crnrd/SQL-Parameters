@@ -1,6 +1,14 @@
 CREATE MATERIALIZED VIEW mv_conversion_post_auth_verifications AS
 
-with verification_requests_and_answers AS
+with p_ids as (
+  select
+    id
+  from
+    payments
+  WHERE
+    created_at between now()-interval '37 days' and now()-interval '7 days'),
+
+verification_requests_and_answers AS
 (
   SELECT
     vr.inserted_at,
@@ -27,7 +35,10 @@ with verification_requests_and_answers AS
       when verification_format = 'clarification' then TRUE
       else false end as is_clarification_requested
   FROM
-    verification_requests vr
+    verification_requests vr,
+    p_ids
+  WHERE
+    p_ids.id = vr.payment_id
 ),
 
   grouped_verification_requests_and_answers as
@@ -121,11 +132,13 @@ with verification_requests_and_answers AS
 
     FROM
       decisions d,
-      verification_requests vr
+      verification_requests vr,
+      p_ids
       where
-        d.application_name in ('EndUser', 'Scheduler', 'Manual', 'Bender_Manual')
-        AND d.decision = 'cancelled'
+        p_ids.id = vr.payment_id
         and vr.payment_id = d.payment_id
+        and d.application_name in ('EndUser', 'Scheduler', 'Manual', 'Bender_Manual')
+        AND d.decision = 'cancelled'
     order by d.payment_id desc, vr.inserted_at DESC
   ),
 

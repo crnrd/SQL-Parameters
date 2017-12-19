@@ -1,22 +1,31 @@
 CREATE MATERIALIZED VIEW mv_conversion_auth AS
 
+with p_ids as (
+  select
+    id
+  from
+    payments
+  WHERE
+    created_at between now()-interval '37 days' and now()-interval '7 days'),
 
-WITH last_decision_for_payment AS
+last_decision_for_payment AS
 (SELECT
    payment_id,
-   max(id) AS last_process
+   max(proc_requests.id) AS last_process
  FROM
-   proc_requests
+   proc_requests,
+   p_ids
  WHERE
-   tx_type = 'authorization'
+   p_ids.id = proc_requests.payment_id
+   and tx_type = 'authorization'
  GROUP BY 1),
 
 
     processor_status_and_reason AS
   (SELECT
-     id,
+     proc_requests.id,
      payment_id,
-     count(id)
+     count(proc_requests.id)
      OVER (
        PARTITION BY payment_id ) AS num_auth_attempts,
      processor,
@@ -56,9 +65,11 @@ WITH last_decision_for_payment AS
      WHEN status ISNULL THEN 'Processing error'
      ELSE 'Unexpected Value' END AS reason
    FROM
-     proc_requests
+     proc_requests,
+     p_ids
    WHERE
-     processor IN ('ecp', 'credorax')
+     p_ids.id = proc_requests.payment_id
+     and processor IN ('ecp', 'credorax')
      AND tx_type = 'authorization'
   ),
 
