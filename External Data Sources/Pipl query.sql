@@ -3,7 +3,6 @@
 ------------------------------------------------
 
 
-WbVarDef pid = '$[?email]' as email;
 
 
 -- @wbResult Info
@@ -95,5 +94,5 @@ email,
 data ->> '@persons_count' cnt,
 data -> 'available_data' ->> 'premium' as tot_info
 
-FROM enrich_pipl where email ilike ($[email])
+FROM enrich_pipl where email ilike (:email)
 ;

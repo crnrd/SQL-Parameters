@@ -1,10 +1,9 @@
-WbVarDef pid='$[?id]';
 --@WbResult pay_by_bin
 with pr as 
 (select payment_id from proc_requests where substring(masked_credit_card from 1 for 6) 
-in (select substring(credit_card from 1 for 6) from payments where id in ($[pid]))
-and created_at between ((select created_at from payments where id = $[pid]) - interval '21 days' )
-and (select created_at from payments where id = $[pid]))
+in (select substring(credit_card from 1 for 6) from payments where id in (:p_ids))
+and created_at between ((select created_at from payments where id = :p_ids) - interval '21 days' )
+and (select created_at from payments where id = :p_ids))
 select distinct on (py.id) py.id, py.status, py.credit_card, (py.simplex_login ->> 'ip') as ip, py.created_at, py.handling_at, u.email as handler, total_amount, py.currency, 
       py.email, ea.ea_advice, ea.ea_age ea_reason, py.first_name, py.last_name, py.first_name_card, py.last_name_card, py.country, py.state, py.city, py.address1, py.zipcode, cbks.cbktype, rrqs.rrqcode, frws.frwt
 from payments py
@@ -23,9 +22,9 @@ order by 1
 ;
 --@WbResult pay_by_ip3
 with p as (select id from payments where 
-substring((simplex_login ->> 'ip') from '[0-9]+.[0-9]+.[0-9]+') in (select substring((simplex_login ->> 'ip') from '[0-9]+.[0-9]+.[0-9]+') from payments where id IN ($[pid]))
-and created_at between ((select created_at from payments where id = $[pid]) - interval '21 days') 
-and (select created_at from payments where id = $[pid]))
+substring((simplex_login ->> 'ip') from '[0-9]+.[0-9]+.[0-9]+') in (select substring((simplex_login ->> 'ip') from '[0-9]+.[0-9]+.[0-9]+') from payments where id IN (:p_ids))
+and created_at between ((select created_at from payments where id = :p_ids) - interval '21 days') 
+and (select created_at from payments where id = :p_ids))
 select distinct on (py.id) py.id, py.status, py.credit_card, (py.simplex_login ->> 'ip') as ip, py.created_at, py.handling_at, u.email as handler, total_amount, py.currency, 
       py.email, ea.ea_advice, ea.ea_age ea_reason, py.first_name, py.last_name, py.first_name_card, py.last_name_card, py.country, py.state, py.city, py.address1, py.zipcode, cbks.cbktype, rrqs.rrqcode, frws.frwt
 from payments py
@@ -43,9 +42,9 @@ where py.id in (select id from p)
 ;
 --@WbResult pay_by_domain
 with p as (select id from payments where 
-split_part(email, '@', 2) in (select split_part(email, '@', 2) from payments where id  in ($[pid]))
-and created_at between ((select created_at from payments where id = $[pid]) - interval '21 days')
-and (select created_at from payments where id = $[pid]))
+split_part(email, '@', 2) in (select split_part(email, '@', 2) from payments where id  in (:p_ids))
+and created_at between ((select created_at from payments where id = :p_ids) - interval '21 days')
+and (select created_at from payments where id = :p_ids))
 select distinct on (py.id) py.id, py.status, py.credit_card, (py.simplex_login ->> 'ip') as ip, py.created_at, py.handling_at, u.email as handler, total_amount, py.currency, 
       py.email, ea.ea_advice, ea.ea_age ea_reason, py.first_name, py.last_name, py.first_name_card, py.last_name_card, py.country, py.state, py.city, py.address1, py.zipcode, cbks.cbktype, rrqs.rrqcode, frws.frwt
 from payments py
@@ -76,10 +75,10 @@ payments p
 where credit_card is not null
 
 )a
-where ip_country in (select data ->> 'countryCode' from enrich_maxmind where (request_data ->> 'i') in (select (p.simplex_login ->> 'ip') from payments p where id in ($[pid]))) 
-and bin_country in (select response_data #>> '{country, alpha2}' from enrich_binlist where bin in (select substring(p.credit_card from 1 for 6) from payments p where id in ($[pid]))) 
-and created_at between ((select created_at from payments where id = $[pid]) - interval '21 days')
-and (select created_at from payments where id = $[pid])
+where ip_country in (select data ->> 'countryCode' from enrich_maxmind where (request_data ->> 'i') in (select (p.simplex_login ->> 'ip') from payments p where id in (:p_ids))) 
+and bin_country in (select response_data #>> '{country, alpha2}' from enrich_binlist where bin in (select substring(p.credit_card from 1 for 6) from payments p where id in (:p_ids))) 
+and created_at between ((select created_at from payments where id = :p_ids) - interval '21 days')
+and (select created_at from payments where id = :p_ids)
 group by 1,2,3)
 
 select distinct on (py.id) py.id, py.status, py.credit_card, (py.simplex_login ->> 'ip') as ip, py.created_at, py.handling_at, u.email as handler, total_amount, py.currency, 
