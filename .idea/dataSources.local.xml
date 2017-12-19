@@ -1,25 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="dataSourceStorageLocal">
-    <data-source name="Playground" uuid="650b7cd7-01f7-438b-bc10-72dd752c7128">
-      <database-info product="PostgreSQL" version="9.4.9" jdbc-version="4.0" driver-name="PostgreSQL Native Driver" driver-version="PostgreSQL 9.4 JDBC4 (build 1201)">
-        <identifier-quote-string>&quot;</identifier-quote-string>
-      </database-info>
-      <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact" />
-      <secret-storage>master_key</secret-storage>
-      <user-name>max</user-name>
-      <introspection-schemas>simplex_cc:public</introspection-schemas>
-    </data-source>
-    <data-source name="ReadReplica" uuid="91d77310-8dbb-4d44-9551-c12f9a760dc2">
-      <database-info product="PostgreSQL" version="9.4.9" jdbc-version="4.0" driver-name="PostgreSQL Native Driver" driver-version="PostgreSQL 9.4 JDBC4 (build 1201)">
-        <identifier-quote-string>&quot;</identifier-quote-string>
-      </database-info>
-      <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact" />
-      <secret-storage>master_key</secret-storage>
-      <user-name>max</user-name>
-      <introspection-schemas>simplex_cc:public</introspection-schemas>
-    </data-source>
-    <data-source name="Stage" uuid="d26fd6bf-c169-4267-a368-848430193ab0">
+    <data-source name="Stage" uuid="adf8d2b5-96b8-4d38-b4a5-35ec184f34a6">
       <database-info product="PostgreSQL" version="9.4.7" jdbc-version="4.0" driver-name="PostgreSQL Native Driver" driver-version="PostgreSQL 9.4 JDBC4 (build 1201)">
         <identifier-quote-string>&quot;</identifier-quote-string>
       </database-info>

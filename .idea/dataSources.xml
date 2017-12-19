@@ -1,25 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="Playground" uuid="650b7cd7-01f7-438b-bc10-72dd752c7128">
-      <driver-ref>postgresql</driver-ref>
-      <synchronize>true</synchronize>
-      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://simplex-db-prod-94-copy1.chlvxdt2dbfg.us-east-1.rds.amazonaws.com:5432/simplex_cc</jdbc-url>
-      <driver-properties>
-        <property name="ApplicationName" value="DataGrip" />
-      </driver-properties>
-    </data-source>
-    <data-source source="LOCAL" name="ReadReplica" uuid="91d77310-8dbb-4d44-9551-c12f9a760dc2">
-      <driver-ref>postgresql</driver-ref>
-      <synchronize>true</synchronize>
-      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://simplexcc-db-prod-read1.chlvxdt2dbfg.us-east-1.rds.amazonaws.com:5432/simplex_cc</jdbc-url>
-      <driver-properties>
-        <property name="ApplicationName" value="DataGrip" />
-      </driver-properties>
-    </data-source>
-    <data-source source="LOCAL" name="Stage" uuid="d26fd6bf-c169-4267-a368-848430193ab0">
+    <data-source source="LOCAL" name="Stage" uuid="adf8d2b5-96b8-4d38-b4a5-35ec184f34a6">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>

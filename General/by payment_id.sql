@@ -107,10 +107,3 @@ ORDER BY payment_id,
 select *
 FROM phone_verifications
 where payment_id in (:p_ids);
-
-select * from partner_end_users where id = 16443;
-select * from payments where partner_end_user_id = 16443;
-select * from payments_log where partner_end_user_id= 16443;
-
-
-select * from r_payment_events order by 1 desc limit 50;
