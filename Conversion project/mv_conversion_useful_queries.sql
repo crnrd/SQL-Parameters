@@ -43,8 +43,8 @@ all_payments_processed_reasons as (
         when farthest_stage_for_payment = '10 approved' then 'approved'
         when reason_for_farthest_stage ilike '%non-3ds%' then 'failed_in_non-3ds'
         when reason_for_farthest_stage ilike '%3ds%' then 'failed_in_3ds'
-        when reason_for_farthest_stage ilike '%kyc_and_selfie%kyc%' then 'kyc_and_selfie:_failed_in_kyc'
-        when reason_for_farthest_stage ilike '%kyc_and_selfie%selfie%' then 'kyc_and_selfie:_failed_in_selfie'
+        when reason_for_farthest_stage ilike '%kyc_and_selfie%kyc%' then 'failed_in_kyc'
+        when reason_for_farthest_stage ilike '%kyc_and_selfie%selfie%' then 'failed_in_selfie'
         when reason_for_farthest_stage ilike '%kyc%' then 'failed_in_kyc'
         when reason_for_farthest_stage ilike '%selfie%' then 'failed_in_selfie'
         else reason_for_farthest_stage end as reason_for_farthest_stage
@@ -66,7 +66,7 @@ select
     partner_type_per_payment
   WHERE
     all_payments_processed_reasons.s_payment_id = partner_type_per_payment.payment_id
-    and farthest_stage_for_payment not in ('01 form_billing_info', '02 email_and_phone_verifications', '03 payment', '04 pre_auth')
+    and farthest_stage_for_payment not in ('01 form_billing_info', '02 email_and_phone_verifications', '03 payment', '04 pre_auth', '05 auth')
               ) all_payments_summarized
   WHERE
     percentage_of_total_payments > 0.001
