@@ -1,12 +1,11 @@
 WbVarDef pid='$[?id]';
 
-------WbVarDef pemail = @"SELECT payment_request_body #>> '{email}' FROM payments WHERE id IN ($[pid])";
+
 -- Payments table 
 -- @WbResult payments_full 
 SELECT *
 FROM payments
 WHERE (id IN ($[pid]))
--------- or  ((payment_request_body #>> '{email}')  = ' $[pemail]')
 ORDER BY id DESC;
 
 

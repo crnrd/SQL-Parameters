@@ -1,4 +1,3 @@
-
 WITH p as (SELECT r_payments.id,
                   r_payments.simplex_payment_id as psp_id,
                   payments.created_at,
@@ -7,11 +6,11 @@ WITH p as (SELECT r_payments.id,
             join r_payments
             on payments.id = r_payments.simplex_payment_id
             WHERE status NOT IN (0,12,19,20, 23)
-            and payments.created_at between date '02-10-2017' and date '03-20-2017'
-            order by id desc )
+            and payments.created_at >= '08-01-2017'
+            and payments.created_at <= '09-30-2017'
+		   and (random() <= 0.70) limit 50000)
 
-SELECT
-       payment_id, pit as time_point, 'conservative'::risk_mode_type as risk_mode, 'payment-post-auth'::checkpoint_name as checkpoint_name
+SELECT payment_id, pit as time_point, 'conservative'::risk_mode_type as risk_mode, 'payment-post-auth'::checkpoint_name as checkpoint_name
 FROM (SELECT DISTINCT p.id payment_id,
              least(p.handling_at, COALESCE(d.executed_at,pr.proc_updated_at,p.created_at +INTERVAL '5 minutes')) AS pit
       FROM p
@@ -25,11 +24,8 @@ FROM (SELECT DISTINCT p.id payment_id,
                    FROM proc_requests
                    WHERE status = 'success'
                    AND   tx_type = 'authorization'
-                   GROUP BY 1) pr ON p.psp_id = pr.payment_id) a;
-
-COMMIT;
+                   GROUP BY 1) pr ON p.psp_id = pr.payment_id) a
 
 
--- checking your group
-select   max(group_id) from simulator_groups;     
-
+SELECT *
+FROM simulator_parameters WHERE group_id=3060 LIMIT 40;

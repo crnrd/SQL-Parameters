@@ -3,12 +3,19 @@ WITH p as (SELECT r_payments.id,
                   r_payments.simplex_payment_id as psp_id,
                   payments.created_at,
                   payments.handling_at
-            FROM payments
+            FROM payments  
             join r_payments
-            on payments.id = r_payments.simplex_payment_id
-            WHERE status NOT IN (0,12,19,20, 23)
-            and payments.created_at between date '02-10-2017' and date '03-20-2017'
-            order by id desc )
+            on payments.id = r_payments.simplex_payment_id      
+            left join
+            (select distinct on (request_data ->> 'i') (request_data ->> 'i') ip, (data ->> 'countryCode') as ip_country, (data ->> 'ip_isp') as ip_isp, 
+            (data ->> 'binName') as bin_name, 
+            (data ->> 'binCountry') as bin_country
+            from enrich_maxmind) as em
+            on em.ip = (payments.simplex_login ->> 'ip')
+            where ((split_part(payments.email, '@', 2) = 'mail.ru') or (payments.country in ('RU', 'UA')))
+            and bin_country ilike 'us' 
+            AND status NOT IN (0,12,19,20, 23)
+            order by id desc limit 2000)
 
 SELECT
        payment_id, pit as time_point, 'conservative'::risk_mode_type as risk_mode, 'payment-post-auth'::checkpoint_name as checkpoint_name
@@ -25,11 +32,4 @@ FROM (SELECT DISTINCT p.id payment_id,
                    FROM proc_requests
                    WHERE status = 'success'
                    AND   tx_type = 'authorization'
-                   GROUP BY 1) pr ON p.psp_id = pr.payment_id) a;
-
-COMMIT;
-
-
--- checking your group
-select   max(group_id) from simulator_groups;     
-
+                   GROUP BY 1) pr ON p.psp_id = pr.payment_id) a
