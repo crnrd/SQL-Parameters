@@ -2,11 +2,13 @@ CREATE MATERIALIZED VIEW mv_conversion_cancelled_payments AS
 
 with p_ids as (
   select
-    id
+    p.id
   from
-    payments
+    mv_conversion_payment_ids pi,
+    payments p
   WHERE
-    created_at between now()-interval '37 days' and now()-interval '7 days'
+    p.id = pi.id
+    and created_at between now()-interval '37 days' and now()-interval '7 days'
     and status = 16)
 
     SELECT
@@ -26,6 +28,8 @@ with p_ids as (
                       payment_id from comments where text_data = 'Cancelled because of change in BTC rate (broker policy)') then 'cancelled_due_to_quote'
       when application_name = 'Manual'  then
          'manual_cancelled'
+      when application_name = 'Scheduler' and reason = 'cancel_decision.cancelled_by_analyst' then
+         'scheduler_cancelled_by_analyst'
       when application_name = 'Scheduler'  then
          'scheduler_cancelled_bug'
       when application_name = 'Bender_Manual'  then

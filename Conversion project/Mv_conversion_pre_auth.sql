@@ -1,14 +1,15 @@
 CREATE MATERIALIZED VIEW mv_conversion_pre_auth AS
 
-
-WITH conversion_pre_auth_last_decision_for_payment AS
+with conversion_pre_auth_last_decision_for_payment AS
 (SELECT
    payment_id,
-   max(id) AS last_decision
+   max(decisions.id) AS last_decision
  FROM
-   decisions
+   decisions,
+   mv_conversion_payment_ids p_ids
  WHERE
-   application_name = 'Bender_Pre_Auth_Decide'
+   p_ids.id = decisions.payment_id
+   and application_name = 'Bender_Pre_Auth_Decide'
  GROUP BY 1)
 
 SELECT
@@ -19,11 +20,11 @@ SELECT
   ELSE 'unexpected value' END AS payment_status_in_stage,
 
   CASE
-  WHEN decision IN ('auth') THEN 'sent to 3DS'
-  WHEN decision IN ('exempt_from_three_ds') THEN 'sent to Non-3DS'
-  WHEN decision IN ('reject_by_policy') THEN 'rejected by policy'
-  WHEN decision IN ('card_name_mismatch') THEN 'rejected for name mismatch'
-  ELSE 'unexpected value' END AS status_reason_in_stage
+  WHEN decision IN ('auth') THEN 'sent_to_3DS'
+  WHEN decision IN ('exempt_from_three_ds') THEN 'sent_to_non_3DS'
+  WHEN decision IN ('reject_by_policy') THEN 'rejected_by_policy'
+  WHEN decision IN ('card_name_mismatch') THEN 'rejected_for_name_mismatch'
+  ELSE 'unexpected_value' END AS status_reason_in_stage
 FROM
   decisions d,
   conversion_pre_auth_last_decision_for_payment ldfp

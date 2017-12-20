@@ -1,5 +1,16 @@
 CREATE MATERIALIZED VIEW mv_conversion_post_kyc AS
 
+with p_ids as (
+  select
+    pi.id
+  from
+    payments p,
+    mv_conversion_payment_ids pi
+  WHERE
+    p.id = pi.id
+    and created_at between now()-interval '37 days' and now()-interval '7 days'
+    and p.status != 16)
+
 SELECT
   d.payment_id AS s_payment_id,
   CASE
@@ -10,8 +21,10 @@ SELECT
 
   decision::text status_reason_in_stage
 FROM
-  decisions d
+  decisions d,
+  p_ids
 WHERE
-  application_name = 'Nibbler_post_kyc'
+  p_ids.id = d.payment_id
+  and application_name = 'Nibbler_post_kyc'
 ORDER BY 1 DESC;
 

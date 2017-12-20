@@ -1,25 +1,16 @@
 CREATE MATERIALIZED VIEW mv_conversion_auth AS
 
-with p_ids as (
-  select
-    id
-  from
-    payments
-  WHERE
-    created_at between now()-interval '37 days' and now()-interval '7 days'),
-
-last_decision_for_payment AS
+with last_decision_for_payment AS
 (SELECT
    payment_id,
    max(proc_requests.id) AS last_process
  FROM
    proc_requests,
-   p_ids
+   mv_conversion_payment_ids p_ids
  WHERE
    p_ids.id = proc_requests.payment_id
    and tx_type = 'authorization'
  GROUP BY 1),
-
 
     processor_status_and_reason AS
   (SELECT
@@ -66,7 +57,7 @@ last_decision_for_payment AS
      ELSE 'unexpected _value' END AS reason
    FROM
      proc_requests,
-     p_ids
+     mv_conversion_payment_ids p_ids
    WHERE
      p_ids.id = proc_requests.payment_id
      and processor IN ('ecp', 'credorax')

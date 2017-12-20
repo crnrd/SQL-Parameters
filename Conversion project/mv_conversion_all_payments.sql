@@ -98,5 +98,5 @@ FROM
   LEFT JOIN
   mv_conversion_cancelled_payments cancelled_payments
     on p.id = cancelled_payments.payment_id
-       and cancelled_payments.cancellation_reason in ('manual_cancelled', 'scheduler_cancelled_bug batch_cancelled', 'cancelled_due_to_quote', 'other')
+       and cancelled_payments.cancellation_reason in ('manual_cancelled', 'scheduler_cancelled_bug', 'batch_cancelled', 'cancelled_due_to_quote', 'other')
   WHERE p.created_at between now()-interval '37 days' and now()-interval '7 days';
