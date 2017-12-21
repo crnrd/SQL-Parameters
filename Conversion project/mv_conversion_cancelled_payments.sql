@@ -8,7 +8,6 @@ with p_ids as (
     payments p
   WHERE
     p.id = pi.id
-    and created_at between now()-interval '37 days' and now()-interval '7 days'
     and status = 16)
 
     SELECT

@@ -8,7 +8,6 @@ with p_ids as (
     mv_conversion_payment_ids pi
   WHERE
     p.id = pi.id
-    and created_at between now()-interval '37 days' and now()-interval '7 days'
     and p.status != 16)
 
 SELECT
